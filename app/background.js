@@ -1,6 +1,29 @@
 // Background script for Tab Manager
 const SYNC_INTERVAL = 30000; // 30 seconds
 
+// Check if extension context is valid
+const isExtensionContextValid = () => {
+  try {
+    chrome.runtime.getURL('');
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+// Wrapper for Chrome API calls
+const safeApiCall = async (apiCall) => {
+  if (!isExtensionContextValid()) {
+    throw new Error('Extension context invalidated');
+  }
+  try {
+    return await apiCall();
+  } catch (e) {
+    console.error('Chrome API call failed:', e);
+    throw e;
+  }
+};
+
 // Tab management state
 let collections = {};
 let syncedTabs = {};
@@ -40,9 +63,22 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// Function to get favicon URL safely
+const getFaviconUrl = (url) => {
+  try {
+    const urlObj = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=32`;
+  } catch (e) {
+    return 'assets/icons/icon16.png';
+  }
+};
+
 // Listen for tab updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && userPreferences.autoSaveEnabled) {
+    // Update tab with safe favicon URL
+    const faviconUrl = getFaviconUrl(tab.url);
+    tab.favIconUrl = faviconUrl;
     saveTabToHistory(tab);
   }
 });
@@ -65,46 +101,73 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // Listen for messages from other parts of the extension
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  switch (request.action) {
-    case 'getCollections':
-      sendResponse({ collections });
-      break;
-      
-    case 'saveCollection':
-      saveCollection(request.collection);
-      sendResponse({ success: true });
-      break;
-      
-    case 'getTabs':
-      chrome.tabs.query({}, tabs => {
-        sendResponse({ tabs });
-      });
-      return true; // Keep channel open for async response
-      
-    case 'openTabs':
-      openTabsInCollection(request.collectionId);
-      sendResponse({ success: true });
-      break;
-      
-    case 'closeTabs':
-      closeTabsInCollection(request.tabIds);
-      sendResponse({ success: true });
-      break;
-      
-    case 'syncTabs':
-      syncTabs();
-      sendResponse({ success: true });
-      break;
-      
-    case 'updatePreferences':
-      updateUserPreferences(request.preferences);
-      sendResponse({ success: true });
-      break;
-      
-    case 'shareCollection':
-      shareCollection(request.collectionId, request.users);
-      sendResponse({ success: true });
-      break;
+  if (!isExtensionContextValid()) {
+    sendResponse({ error: 'Extension context invalidated' });
+    return;
+  }
+
+  const handleError = (error) => {
+    console.error('Operation failed:', error);
+    sendResponse({ error: error.message || 'Operation failed' });
+  };
+
+  try {
+    switch (request.action) {
+      case 'getCollections':
+        sendResponse({ collections });
+        break;
+        
+      case 'saveCollection':
+        safeApiCall(async () => {
+          await saveCollection(request.collection);
+          sendResponse({ success: true });
+        }).catch(handleError);
+        return true;
+        
+      case 'getTabs':
+        safeApiCall(async () => {
+          const tabs = await chrome.tabs.query({});
+          sendResponse({ tabs });
+        }).catch(handleError);
+        return true;
+        
+      case 'openTabs':
+        safeApiCall(async () => {
+          await openTabsInCollection(request.collectionId);
+          sendResponse({ success: true });
+        }).catch(handleError);
+        return true;
+        
+      case 'closeTabs':
+        safeApiCall(async () => {
+          await closeTabsInCollection(request.tabIds);
+          sendResponse({ success: true });
+        }).catch(handleError);
+        return true;
+        
+      case 'syncTabs':
+        safeApiCall(async () => {
+          await syncTabs();
+          sendResponse({ success: true });
+        }).catch(handleError);
+        return true;
+        
+      case 'updatePreferences':
+        safeApiCall(async () => {
+          await updateUserPreferences(request.preferences);
+          sendResponse({ success: true });
+        }).catch(handleError);
+        return true;
+        
+      case 'shareCollection':
+        safeApiCall(async () => {
+          await shareCollection(request.collectionId, request.users);
+          sendResponse({ success: true });
+        }).catch(handleError);
+        return true;
+    }
+  } catch (error) {
+    handleError(error);
   }
 });
 
@@ -205,4 +268,4 @@ function shareCollection(collectionId, users) {
     collections[collectionId].sharedWith = users;
     chrome.storage.local.set({ collections });
   }
-} 
+}

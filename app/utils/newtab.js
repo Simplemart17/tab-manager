@@ -174,9 +174,9 @@ function createCollectionCard(collection) {
     tabPreview.className = 'tab-preview';
     
     const favicon = document.createElement('img');
-    favicon.src = tab.favicon || 'chrome://favicon';
+    favicon.src = tab.favicon || chrome.runtime.getURL('assets/icons/icon16.png');
     favicon.onerror = () => {
-      favicon.src = 'chrome://favicon';
+      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
     };
     
     tabPreview.appendChild(favicon);
@@ -228,9 +228,9 @@ function createTabCard(tab) {
   
   const favicon = document.createElement('img');
   favicon.className = 'tab-card-favicon';
-  favicon.src = tab.favIconUrl || 'chrome://favicon';
+  favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
   favicon.onerror = () => {
-    favicon.src = 'chrome://favicon';
+    favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
   };
   
   const title = document.createElement('div');
@@ -406,9 +406,9 @@ function showSaveModal(tabs) {
     
     const favicon = document.createElement('img');
     favicon.className = 'tab-favicon';
-    favicon.src = tab.favIconUrl || 'chrome://favicon';
+    favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
     favicon.onerror = () => {
-      favicon.src = 'chrome://favicon';
+      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
     };
     
     const title = document.createElement('div');
@@ -518,7 +518,7 @@ function saveCollection() {
     id: tab.id,
     url: tab.url,
     title: tab.title,
-    favicon: tab.favIconUrl || 'chrome://favicon'
+    favicon: tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png')
   }));
   
   const collection = {
@@ -722,4 +722,4 @@ function formatDate(timestamp) {
 function isValidEmail(email) {
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
-} 
+}

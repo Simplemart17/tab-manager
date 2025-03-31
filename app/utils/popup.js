@@ -47,6 +47,32 @@ let userPreferences = {
   collaborationEnabled: true
 };
 
+// Error handling and context validation
+const handleChromeError = (error) => {
+  console.error('Chrome API error:', error);
+  if (error.message.includes('Extension context invalidated')) {
+    // Show error message to user
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = 'Extension context has been invalidated. Please refresh the page.';
+    document.body.insertBefore(errorDiv, document.body.firstChild);
+    
+    // Disable all interactive elements
+    document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+    document.querySelectorAll('input').forEach(input => input.disabled = true);
+  }
+};
+
+// Safe Chrome API wrapper
+const safeApiCall = async (apiCall) => {
+  try {
+    return await apiCall();
+  } catch (error) {
+    handleChromeError(error);
+    throw error;
+  }
+};
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadUserPreferences();
@@ -56,8 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Load user preferences
-function loadUserPreferences() {
-  chrome.storage.local.get(['userPreferences'], (result) => {
+async function loadUserPreferences() {
+  try {
+    const result = await safeApiCall(() => chrome.storage.local.get(['userPreferences']));
     if (result.userPreferences) {
       userPreferences = result.userPreferences;
       
@@ -77,25 +104,33 @@ function loadUserPreferences() {
       autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
       collaborationEnabledCheck.checked = userPreferences.collaborationEnabled;
     }
-  });
+  } catch (error) {
+    handleChromeError(error);
+  }
 }
 
 // Load collections from storage
-function loadCollections() {
-  chrome.storage.local.get(['collections'], (result) => {
+async function loadCollections() {
+  try {
+    const result = await safeApiCall(() => chrome.storage.local.get(['collections']));
     if (result.collections) {
       collections = result.collections;
       renderCollections();
     }
-  });
+  } catch (error) {
+    handleChromeError(error);
+  }
 }
 
 // Load open tabs
-function loadOpenTabs() {
-  chrome.tabs.query({}, (tabs) => {
+async function loadOpenTabs() {
+  try {
+    const tabs = await safeApiCall(() => chrome.tabs.query({}));
     currentTabs = tabs;
     renderOpenTabs();
-  });
+  } catch (error) {
+    handleChromeError(error);
+  }
 }
 
 // Render open tabs list
@@ -116,9 +151,9 @@ function createTabElement(tab) {
   
   const favicon = document.createElement('img');
   favicon.className = 'tab-favicon';
-  favicon.src = tab.favIconUrl || 'chrome://favicon';
+  favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
   favicon.onerror = () => {
-    favicon.src = 'chrome://favicon';
+    favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
   };
   
   const title = document.createElement('div');
@@ -212,9 +247,9 @@ function createCollectionElement(collection) {
     tabIcon.className = 'collection-tab';
     
     const favicon = document.createElement('img');
-    favicon.src = tab.favicon || 'chrome://favicon';
+    favicon.src = tab.favicon || chrome.runtime.getURL('assets/icons/icon16.png');
     favicon.onerror = () => {
-      favicon.src = 'chrome://favicon';
+      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
     };
     
     tabIcon.appendChild(favicon);
@@ -339,9 +374,9 @@ function showSaveModal(tabs) {
     
     const favicon = document.createElement('img');
     favicon.className = 'tab-favicon';
-    favicon.src = tab.favIconUrl || 'chrome://favicon';
+    favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
     favicon.onerror = () => {
-      favicon.src = 'chrome://favicon';
+      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
     };
     
     const title = document.createElement('div');
@@ -435,7 +470,7 @@ function saveCollection() {
     id: tab.id,
     url: tab.url,
     title: tab.title,
-    favicon: tab.favIconUrl || 'chrome://favicon'
+    favicon: tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png')
   }));
   
   const collection = {
@@ -560,4 +595,4 @@ function syncTabs() {
 function isValidEmail(email) {
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
-} 
+}
