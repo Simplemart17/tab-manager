@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Tab Manager Pro",
+  "name": "Tab Manager",
   "version": "1.0.0",
   "description": "Advanced tab management with premium features including cloud sync and team collaboration",
   "icons": {
@@ -9,7 +9,7 @@
     "128": "assets/icons/icon128.png"
   },
   "action": {
-    "default_title": "Tab Manager Pro",
+    "default_title": "Tab Manager",
     "default_popup": "app/pages/popup.html",
     "default_icon": {
       "16": "assets/icons/icon16.png",

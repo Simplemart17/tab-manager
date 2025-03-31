@@ -308,20 +308,6 @@ function setupEventListeners() {
     showSettingsModal();
   });
   
-  // Save all tabs button
-  saveAllTabsBtn.addEventListener('click', () => {
-    showSaveModal(currentTabs);
-  });
-  
-  // Close all tabs button
-  closeAllTabsBtn.addEventListener('click', () => {
-    if (confirm('Are you sure you want to close all tabs?')) {
-      const tabIds = currentTabs.map(tab => tab.id);
-      chrome.tabs.remove(tabIds);
-      tabsContainer.innerHTML = '';
-    }
-  });
-  
   // New collection button
   newCollectionBtn.addEventListener('click', () => {
     showSaveModal([]);

@@ -265,12 +265,7 @@ function createCollectionElement(collection) {
 }
 
 // Set up event listeners
-function setupEventListeners() {
-  // Save all tabs button
-  saveAllTabsBtn.addEventListener('click', () => {
-    showSaveModal(currentTabs);
-  });
-  
+function setupEventListeners() {  
   // New collection button
   newCollectionBtn.addEventListener('click', () => {
     showSaveModal([]);

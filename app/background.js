@@ -1,4 +1,4 @@
-// Background script for Tab Manager Pro
+// Background script for Tab Manager
 const SYNC_INTERVAL = 30000; // 30 seconds
 
 // Tab management state
