@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Manager Pro",
+  "version": "1.0.0",
+  "description": "Advanced tab management with premium features including cloud sync and team collaboration",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Tab Manager Pro",
+    "default_popup": "app/pages/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "bookmarks",
+    "identity",
+    "contextMenus",
+    "alarms"
+  ],
+  "background": {
+    "service_worker": "app/background.js",
+    "type": "module"
+  },
+  "chrome_url_overrides": {
+    "newtab": "app/pages/newtab.html"
+  },
+  "optional_permissions": [
+    "history"
+  ],
+  "commands": {
+    "save-current-tab": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Save current tab to collection"
+    },
+    "open-tab-manager": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+M",
+        "mac": "Command+Shift+M"
+      },
+      "description": "Open Tab Manager"
+    }
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "web_accessible_resources": [{
+    "resources": ["assets/*"],
+    "matches": ["<all_urls>"]
+  }]
+} 

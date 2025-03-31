@@ -1,0 +1,31 @@
+{
+  "name": "tab-manager-pro",
+  "version": "1.0.0",
+  "description": "Advanced tab management with cloud sync and team collaboration",
+  "main": "app/background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/tab-manager-pro.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "tab-manager",
+    "productivity",
+    "tab-organizer",
+    "team-collaboration"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/tab-manager-pro/issues"
+  },
+  "homepage": "https://github.com/yourusername/tab-manager-pro#readme",
+  "devDependencies": {
+    "eslint": "^8.39.0",
+    "eslint-config-prettier": "^8.8.0",
+    "prettier": "^2.8.8"
+  }
+} 
