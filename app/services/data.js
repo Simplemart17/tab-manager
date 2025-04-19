@@ -153,7 +153,7 @@ class DataService {
     return dbService.updateCollection(updatedCollection);
   }
 
-  async removeTabFromCollection(collectionId, tabId) {
+  async removeTabFromCollection(tabId, collectionId) {
     await this.init();
     const collection = await dbService.getCollection(collectionId);
     if (!collection) throw new Error(`Collection with id ${collectionId} not found`);

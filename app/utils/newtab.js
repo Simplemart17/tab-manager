@@ -3,7 +3,7 @@ import dataService from '../services/data.js';
 import dragDropService from '../services/dragdrop.js';
 
 // DOM Elements
-const collectionsGrid = document.getElementById('collections-grid');
+const collectionsList = document.getElementById('collections-list');
 const tabsContainer = document.getElementById('tabs-container');
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
@@ -231,115 +231,211 @@ function loadOpenTabs() {
 
 // Render collections
 function renderCollections(collections) {
-  collectionsGrid.innerHTML = '';
+  collectionsList.innerHTML = '';
 
   collections.forEach(collection => {
-    const collectionCard = createCollectionCard(collection);
-    collectionsGrid.appendChild(collectionCard);
+    const collectionGroup = createCollectionGroup(collection);
+    collectionsList.appendChild(collectionGroup);
   });
 }
 
-// Create collection card element
-function createCollectionCard(collection) {
-  const card = document.createElement('div');
-  card.className = 'collection-card';
-  card.dataset.collectionId = collection.id;
+// Create collection group element
+function createCollectionGroup(collection) {
+  const group = document.createElement('div');
+  group.className = 'collection-group';
+  group.dataset.collectionId = collection.id;
 
   // Find the workspace color
   const spaceId = collection.spaceId || collection.workspace;
-  if (spaceId) {
-    dataService.getSpace(spaceId).then(space => {
-      if (space) {
-        card.style.borderLeft = `4px solid ${space.color}`;
-      }
-    });
-  }
+  let spaceColor = '#ff5c8d'; // Default color
 
+  // Create header
   const header = document.createElement('div');
-  header.className = 'collection-card-header';
+  header.className = 'collection-header';
+
+  // Left side of header
+  const headerLeft = document.createElement('div');
+  headerLeft.className = 'collection-header-left';
 
   const title = document.createElement('div');
   title.className = 'collection-title';
   title.textContent = collection.name;
 
-  const date = document.createElement('div');
-  date.className = 'collection-date';
-  date.textContent = formatDate(collection.createdAt);
+  headerLeft.appendChild(title);
 
-  header.appendChild(title);
-  header.appendChild(date);
+  // Right side of header
+  const headerRight = document.createElement('div');
+  headerRight.className = 'collection-header-right';
 
-  const preview = document.createElement('div');
-  preview.className = 'collection-tabs-preview';
+  const count = document.createElement('div');
+  count.className = 'collection-count';
+  count.textContent = `${collection.tabs ? collection.tabs.length : 0} tab${collection.tabs && collection.tabs.length !== 1 ? 's' : ''}`;
 
-  // Show up to 10 tab favicons
-  if (collection.tabs) {
-    collection.tabs.slice(0, 10).forEach(tab => {
-      const tabPreview = document.createElement('div');
-      tabPreview.className = 'tab-preview';
+  const toggleIcon = document.createElement('div');
+  toggleIcon.className = 'collection-toggle-icon';
+  toggleIcon.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  `;
 
-      const favicon = document.createElement('img');
+  headerRight.appendChild(count);
+  headerRight.appendChild(toggleIcon);
 
-      // Set a default icon first to ensure we always have something
-      favicon.src = getDefaultIconPath();
+  header.appendChild(headerLeft);
+  header.appendChild(headerRight);
 
-      // Then try to load the actual favicon if available
-      if (tab.favicon) {
-        const tempImg = new Image();
-        tempImg.onload = () => {
-          favicon.src = tab.favicon;
-        };
-        tempImg.onerror = () => {
-          // Keep the default icon if favicon fails to load
-          favicon.src = getDefaultIconPath();
-        };
-        tempImg.src = tab.favicon;
-      }
+  // Create content container
+  const content = document.createElement('div');
+  content.className = 'collection-content';
 
-      // Fallback in case the above logic fails
-      favicon.onerror = () => {
-        favicon.src = getDefaultIconPath();
-      };
-
-      tabPreview.appendChild(favicon);
-      preview.appendChild(tabPreview);
-    });
-  }
-
-  const info = document.createElement('div');
-  info.className = 'collection-info';
-
-  const tabCount = document.createElement('div');
-  tabCount.textContent = `${collection.tabs ? collection.tabs.length : 0} tab${collection.tabs && collection.tabs.length !== 1 ? 's' : ''}`;
-
-  const owner = document.createElement('div');
-  owner.className = 'collection-owner';
-
-  // Get space name
-  if (spaceId) {
-    dataService.getSpace(spaceId).then(space => {
-      const spaceName = space ? space.name : 'Unknown';
-      const shared = collection.shared ? `· Shared with ${collection.sharedWith?.length || 0} people` : '';
-      owner.textContent = `${spaceName} ${shared}`;
+  // Add tabs to content
+  if (collection.tabs && collection.tabs.length > 0) {
+    collection.tabs.forEach(tab => {
+      const tabCard = createCollectionTabCard(tab, collection.id);
+      content.appendChild(tabCard);
     });
   } else {
-    owner.textContent = 'Personal';
+    const emptyMessage = document.createElement('div');
+    emptyMessage.className = 'empty-message';
+    emptyMessage.textContent = 'No tabs in this collection';
+    content.appendChild(emptyMessage);
   }
 
-  info.appendChild(tabCount);
-  info.appendChild(owner);
+  group.appendChild(header);
+  group.appendChild(content);
 
-  card.appendChild(header);
-  card.appendChild(preview);
-  card.appendChild(info);
+  // Set the border color based on workspace
+  if (spaceId) {
+    dataService.getSpace(spaceId).then(space => {
+      if (space) {
+        spaceColor = space.color;
+        header.style.borderLeftColor = spaceColor;
+      }
+    });
+  }
 
-  // Event listener to open collection when card is clicked
-  card.addEventListener('click', () => {
-    openCollection(collection.id);
+  // Toggle collection collapse when header is clicked
+  header.addEventListener('click', () => {
+    toggleCollectionCollapse(group);
   });
 
   // Set up drag and drop
-  dragDropService.setupCollectionDragDrop(card, collection.id);
+  dragDropService.setupCollectionDragDrop(group, collection.id);
+
+  return group;
+}
+
+// Create tab card for collection
+function createCollectionTabCard(tab, collectionId) {
+  const card = document.createElement('div');
+  card.className = 'collection-tab-card';
+  card.dataset.tabId = tab.id;
+  card.dataset.collectionId = collectionId;
+
+  // Create icon section
+  const iconSection = document.createElement('div');
+  iconSection.className = 'collection-tab-icon';
+
+  const favicon = document.createElement('img');
+  favicon.className = 'collection-tab-favicon';
+
+  // Set a default icon first to ensure we always have something
+  favicon.src = getDefaultIconPath();
+
+  // Then try to load the actual favicon if available
+  if (tab.favicon) {
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      favicon.src = tab.favicon;
+    };
+    tempImg.onerror = () => {
+      // Keep the default icon if favicon fails to load
+      favicon.src = getDefaultIconPath();
+    };
+    tempImg.src = tab.favicon;
+  }
+
+  // Fallback in case the above logic fails
+  favicon.onerror = () => {
+    favicon.src = getDefaultIconPath();
+  };
+
+  iconSection.appendChild(favicon);
+
+  // Create info section
+  const infoSection = document.createElement('div');
+  infoSection.className = 'collection-tab-info';
+
+  const title = document.createElement('div');
+  title.className = 'collection-tab-title';
+  title.textContent = tab.title;
+
+  // Extract domain for subtitle
+  let subtitle = '';
+  try {
+    const url = new URL(tab.url);
+    subtitle = url.hostname.replace('www.', '');
+  } catch (e) {
+    subtitle = 'Unknown domain';
+  }
+
+  const subtitleElement = document.createElement('div');
+  subtitleElement.className = 'collection-tab-subtitle';
+  subtitleElement.textContent = subtitle;
+
+  infoSection.appendChild(title);
+  infoSection.appendChild(subtitleElement);
+
+  // Create actions
+  const actions = document.createElement('div');
+  actions.className = 'collection-tab-actions';
+
+  const openBtn = document.createElement('button');
+  openBtn.className = 'collection-tab-btn';
+  openBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+      <polyline points="15 3 21 3 21 9"></polyline>
+      <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg>
+  `;
+  openBtn.title = 'Open tab';
+  openBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openTabFromCollection(tab);
+  });
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'collection-tab-btn delete';
+  deleteBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  `;
+  deleteBtn.title = 'Remove from collection';
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    removeTabFromCollection(tab.id, collectionId);
+    card.remove();
+  });
+
+  actions.appendChild(openBtn);
+  actions.appendChild(deleteBtn);
+
+  // Assemble the card
+  card.appendChild(iconSection);
+  card.appendChild(infoSection);
+  card.appendChild(actions);
+
+  // Open tab when card is clicked
+  card.addEventListener('click', () => {
+    openTabFromCollection(tab);
+  });
+
+  // Set up drag and drop for tabs
+  dragDropService.setupTabDragDrop(card, tab.id, collectionId);
 
   return card;
 }
@@ -589,13 +685,13 @@ function setupEventListeners() {
     });
   });
 
-  // Setup drag and drop for collections grid
-  collectionsGrid.addEventListener('dragover', (e) => {
+  // Setup drag and drop for collections list
+  collectionsList.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   });
 
-  collectionsGrid.addEventListener('drop', (e) => {
+  collectionsList.addEventListener('drop', (e) => {
     e.preventDefault();
     const collectionId = e.dataTransfer.getData('text/plain');
     // Handle collection drop (could reorder or move to different workspace)
@@ -990,6 +1086,65 @@ function openTabsPane() {
 function closeTabsPane() {
   tabsPane.classList.remove('open');
   tabsToggleIcon.style.transform = 'rotate(0deg)';
+}
+
+// Toggle collection collapse
+function toggleCollectionCollapse(collectionGroup) {
+  collectionGroup.classList.toggle('collapsed');
+}
+
+// Open tab from collection
+async function openTabFromCollection(tab) {
+  try {
+    // Check if tab is already open
+    const openTabs = await new Promise(resolve => {
+      chrome.tabs.query({}, tabs => resolve(tabs));
+    });
+
+    const openTab = openTabs.find(t => t.url === tab.url);
+
+    if (openTab) {
+      // If tab is already open, switch to it
+      chrome.tabs.update(openTab.id, { active: true });
+      chrome.windows.update(openTab.windowId, { focused: true });
+    } else {
+      // Otherwise, open a new tab
+      chrome.tabs.create({ url: tab.url });
+    }
+  } catch (error) {
+    console.error('Error opening tab:', error);
+    // Fallback to just opening the URL
+    chrome.tabs.create({ url: tab.url });
+  }
+}
+
+// Remove tab from collection
+async function removeTabFromCollection(tabId, collectionId) {
+  try {
+    await dataService.removeTabFromCollection(tabId, collectionId);
+    // Update the tab count in the collection header
+    const collection = await dataService.getCollection(collectionId);
+    const collectionGroup = document.querySelector(`.collection-group[data-collection-id="${collectionId}"]`);
+    if (collectionGroup) {
+      const countElement = collectionGroup.querySelector('.collection-count');
+      if (countElement) {
+        const tabCount = collection.tabs ? collection.tabs.length : 0;
+        countElement.textContent = `${tabCount} tab${tabCount !== 1 ? 's' : ''}`;
+      }
+
+      // If no tabs left, show empty message
+      const content = collectionGroup.querySelector('.collection-content');
+      if (content && (!collection.tabs || collection.tabs.length === 0)) {
+        content.innerHTML = '';
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'empty-message';
+        emptyMessage.textContent = 'No tabs in this collection';
+        content.appendChild(emptyMessage);
+      }
+    }
+  } catch (error) {
+    console.error('Error removing tab from collection:', error);
+  }
 }
 
 // Add export/import functions
