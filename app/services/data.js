@@ -270,6 +270,103 @@ class DataService {
 
     return true;
   }
+
+  async importCustomFormat(data) {
+    await this.init();
+
+    // Validate data structure
+    if (!data.groups || !Array.isArray(data.groups)) {
+      throw new Error('Invalid data format: missing or invalid groups array');
+    }
+
+    // Track created spaces and collections for reporting
+    const stats = {
+      spaces: 0,
+      collections: 0,
+      tabs: 0
+    };
+
+    // Process each group (space)
+    for (const group of data.groups) {
+      if (!group.name || !group.lists || !Array.isArray(group.lists)) {
+        console.warn('Skipping invalid group:', group);
+        continue;
+      }
+
+      // Create a space for this group
+      const spaceId = `space-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const space = {
+        id: spaceId,
+        name: group.name,
+        color: this.getRandomColor(),
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      await dbService.addSpace(space);
+      stats.spaces++;
+
+      // Process each list (collection) in the space
+      for (const list of group.lists) {
+        if (!list.title || !list.cards || !Array.isArray(list.cards)) {
+          console.warn('Skipping invalid list:', list);
+          continue;
+        }
+
+        // Format tabs from cards
+        const tabs = list.cards.map(card => {
+          if (!card.url) {
+            console.warn('Skipping invalid card:', card);
+            return null;
+          }
+
+          stats.tabs++;
+
+          return {
+            id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            url: card.url,
+            title: card.title || card.url,
+            favicon: card.favicon || '',
+            description: card.description || '',
+            createdAt: Date.now()
+          };
+        }).filter(tab => tab !== null); // Remove any invalid tabs
+
+        // Create collection
+        const collection = {
+          id: `collection-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          name: list.title,
+          tabs,
+          spaceId,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+
+        await dbService.addCollection(collection);
+        stats.collections++;
+      }
+    }
+
+    return stats;
+  }
+
+  // Helper method to generate random colors for spaces
+  getRandomColor() {
+    const colors = [
+      '#914CE6', // Primary purple
+      '#4ECDC4', // Accent teal
+      '#FF6B6B', // Red
+      '#FFD166', // Yellow
+      '#06D6A0', // Green
+      '#118AB2', // Blue
+      '#5E60CE', // Indigo
+      '#7209B7', // Violet
+      '#F72585', // Pink
+      '#3A86FF'  // Light blue
+    ];
+
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
 }
 
 // Create and export a singleton instance

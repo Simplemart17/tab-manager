@@ -17,6 +17,8 @@ const collectionSpaceSelect = document.getElementById('collection-space');
 const exportDataBtn = document.getElementById('export-data-btn');
 const importDataBtn = document.getElementById('import-data-btn');
 const importDataFile = document.getElementById('import-data-file');
+const importCustomDataBtn = document.getElementById('import-custom-data-btn');
+const importCustomDataFile = document.getElementById('import-custom-data-file');
 
 // Save Collection Modal Elements
 const newCollectionOption = document.getElementById('new-collection-option');
@@ -642,6 +644,33 @@ function setupEventListeners() {
       };
 
       reader.readAsText(file);
+    }
+  });
+
+  // Import custom data button
+  importCustomDataBtn.addEventListener('click', () => {
+    importCustomDataFile.click();
+  });
+
+  // Import custom data file change
+  importCustomDataFile.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const jsonData = event.target.result;
+          importData(jsonData); // We'll use the same importData function as it already handles the custom format
+        } catch (error) {
+          console.error('Error reading custom format file:', error);
+          alert('Error reading file. Please try again.');
+        }
+      };
+
+      reader.readAsText(file);
+      // Reset the file input so the same file can be selected again if needed
+      e.target.value = '';
     }
   });
 
@@ -1294,16 +1323,32 @@ async function exportData() {
 async function importData(jsonData) {
   try {
     const data = JSON.parse(jsonData);
-    await dataService.importData(data);
 
-    // Reload everything
-    await loadSpaces();
-    await loadCollections();
+    // Determine the format of the imported data
+    if (data.groups && Array.isArray(data.groups)) {
+      // This is the custom format with groups, lists, and cards
+      const stats = await dataService.importCustomFormat(data);
 
-    showNotification('Data imported successfully!');
+      // Reload everything
+      await loadSpaces();
+      await loadCollections();
+
+      showNotification(`Import successful! Added ${stats.spaces} spaces, ${stats.collections} collections, and ${stats.tabs} tabs.`);
+    } else if (data.spaces && data.collections) {
+      // This is the standard Toby export format
+      await dataService.importData(data);
+
+      // Reload everything
+      await loadSpaces();
+      await loadCollections();
+
+      showNotification('Data imported successfully!');
+    } else {
+      throw new Error('Unrecognized data format');
+    }
   } catch (error) {
     console.error('Error importing data:', error);
-    alert('Error importing data. Please check the file format and try again.');
+    alert(`Error importing data: ${error.message}. Please check the file format and try again.`);
   }
 }
 

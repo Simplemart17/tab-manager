@@ -1017,6 +1017,18 @@ body {
   margin-bottom: 12px;
 }
 
+.setting-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.setting-item:has(.setting-description) {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .setting-item select {
   margin-top: 18px;
 }
