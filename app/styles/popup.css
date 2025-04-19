@@ -292,7 +292,6 @@ body {
 .modal-content input, .modal-content select {
   width: 100%;
   padding: 8px 12px;
-  margin-bottom: 16px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--background-color);
@@ -430,4 +429,21 @@ body {
 .space-name {
   font-size: 14px;
   font-weight: 500;
+}
+
+.color-picker {
+  margin: 15px 0px 15px 0px;
+}
+
+.color-picker input[type="color"] {
+  padding: 0px;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+
+.setting-item > select {
+  margin-top: 15px;
 }

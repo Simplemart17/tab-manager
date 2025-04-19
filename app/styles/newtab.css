@@ -625,7 +625,6 @@ body {
 .modal-content input, .modal-content select {
   width: 100%;
   padding: 10px 12px;
-  margin-bottom: 16px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--background-color);
@@ -719,8 +718,13 @@ body {
   margin-bottom: 12px;
 }
 
+.setting-item select {
+  margin-top: 18px;
+}
+
 .setting-item label {
   font-size: 14px;
+  margin-right: 10px;
 }
 
 .share-emails-list {
@@ -768,5 +772,18 @@ body {
 }
 
 .color-picker {
-  margin: 5px 0px 16px 0px;
+  margin: 15px 0px 15px 0px;
+}
+
+.color-picker input[type="color"] {
+  padding: 0px;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+
+.setting-item > select {
+  margin-top: 15px;
 }

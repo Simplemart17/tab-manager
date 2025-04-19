@@ -12,7 +12,6 @@ const settingsBtn = document.getElementById('settings-btn');
 const saveAllTabsBtn = document.getElementById('save-all-tabs-btn');
 const newCollectionBtn = document.getElementById('new-collection-btn');
 const newWorkspaceBtn = document.getElementById('new-workspace-btn');
-const inviteTeamBtn = document.getElementById('invite-team-btn');
 const workspacesList = document.getElementById('workspaces-list');
 const collectionSpaceSelect = document.getElementById('collection-space');
 const exportDataBtn = document.getElementById('export-data-btn');
@@ -481,11 +480,6 @@ function setupEventListeners() {
   // New workspace button
   newWorkspaceBtn.addEventListener('click', () => {
     showWorkspaceModal();
-  });
-
-  // Invite team button
-  inviteTeamBtn.addEventListener('click', () => {
-    showShareModal(null, true);
   });
 
   // Cancel save button
