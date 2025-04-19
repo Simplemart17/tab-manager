@@ -19,6 +19,13 @@ const exportDataBtn = document.getElementById('export-data-btn');
 const importDataBtn = document.getElementById('import-data-btn');
 const importDataFile = document.getElementById('import-data-file');
 
+// Tabs Pane Elements
+const tabsPane = document.getElementById('tabs-pane');
+const tabsToggleBtn = document.getElementById('tabs-toggle-btn');
+const closeTabsPaneBtn = document.getElementById('close-tabs-pane');
+const tabsCount = document.querySelector('.tabs-count');
+const tabsToggleIcon = document.querySelector('.tabs-toggle-icon');
+
 // Modals
 const saveCollectionModal = document.getElementById('save-collection-modal');
 const settingsModal = document.getElementById('settings-modal');
@@ -94,6 +101,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Listen for data changes from drag and drop operations
     document.addEventListener('toby-data-change', async () => {
       await loadCollections();
+    });
+
+    // Listen for tab updates
+    chrome.tabs.onCreated.addListener(() => {
+      loadOpenTabs();
+    });
+
+    chrome.tabs.onRemoved.addListener(() => {
+      loadOpenTabs();
+    });
+
+    chrome.tabs.onUpdated.addListener(() => {
+      loadOpenTabs();
     });
   } catch (error) {
     console.error('Error initializing app:', error);
@@ -197,8 +217,16 @@ async function loadCollections() {
 // Load open tabs
 function loadOpenTabs() {
   chrome.tabs.query({}, (tabs) => {
-    currentTabs = tabs;
+    // Filter out the current tab (new tab page)
+    currentTabs = tabs.filter(tab => !tab.url.includes('chrome://newtab'));
     renderOpenTabs();
+
+    // If there are tabs, show the tabs pane toggle button
+    if (currentTabs.length > 0) {
+      tabsToggleBtn.style.display = 'flex';
+    } else {
+      tabsToggleBtn.style.display = 'none';
+    }
   });
 }
 
@@ -325,6 +353,9 @@ function renderOpenTabs() {
     const tabCard = createTabCard(tab);
     tabsContainer.appendChild(tabCard);
   });
+
+  // Update tabs count
+  tabsCount.textContent = currentTabs.length;
 }
 
 // Create tab card element
@@ -505,6 +536,16 @@ function setupEventListeners() {
 
       reader.readAsText(file);
     }
+  });
+
+  // Tabs pane toggle button
+  tabsToggleBtn.addEventListener('click', () => {
+    toggleTabsPane();
+  });
+
+  // Close tabs pane button
+  closeTabsPaneBtn.addEventListener('click', () => {
+    closeTabsPane();
   });
 
   // Add email button
@@ -934,6 +975,27 @@ function isValidEmail(email) {
 // Helper function to get default icon path
 function getDefaultIconPath() {
   return chrome.runtime.getURL('app/assets/icons/icon16.png');
+}
+
+// Toggle tabs pane
+function toggleTabsPane() {
+  if (tabsPane.classList.contains('open')) {
+    closeTabsPane();
+  } else {
+    openTabsPane();
+  }
+}
+
+// Open tabs pane
+function openTabsPane() {
+  tabsPane.classList.add('open');
+  tabsToggleIcon.style.transform = 'rotate(180deg)';
+}
+
+// Close tabs pane
+function closeTabsPane() {
+  tabsPane.classList.remove('open');
+  tabsToggleIcon.style.transform = 'rotate(0deg)';
 }
 
 // Add export/import functions
