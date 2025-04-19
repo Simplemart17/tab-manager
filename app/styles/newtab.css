@@ -1,30 +1,30 @@
 :root {
-  --primary-color: #4f5bd5;
-  --primary-light: #8187e2;
-  --primary-dark: #3240c4;
+  --primary-color: #ff5c8d; /* Toby's pink color */
+  --primary-light: #ff7ca3;
+  --primary-dark: #e54b7b;
   --text-color: #333;
   --text-secondary: #666;
-  --background-color: #fff;
-  --surface-color: #f9f9f9;
+  --background-color: #f8f9fa;
+  --surface-color: #fff;
   --border-color: #e0e0e0;
   --success-color: #4caf50;
   --error-color: #f44336;
   --warning-color: #ff9800;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08);
   --border-radius: 8px;
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 [data-theme="dark"] {
-  --primary-color: #6272e8;
-  --primary-light: #939dee;
-  --primary-dark: #3240c4;
+  --primary-color: #ff5c8d;
+  --primary-light: #ff7ca3;
+  --primary-dark: #e54b7b;
   --text-color: #e0e0e0;
   --text-secondary: #a0a0a0;
-  --background-color: #212121;
-  --surface-color: #2c2c2c;
+  --background-color: #1e1e2e;
+  --surface-color: #2a2a3c;
   --border-color: #424242;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
@@ -60,7 +60,8 @@ body {
   align-items: center;
   padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--background-color);
+  background-color: var(--surface-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .header-left {
@@ -72,6 +73,7 @@ body {
 .main-header h1 {
   font-size: 20px;
   font-weight: 600;
+  color: var(--primary-color);
 }
 
 .search-container {
@@ -221,6 +223,7 @@ body {
   flex-direction: column;
   gap: 24px;
   overflow-y: auto;
+  background-color: var(--surface-color);
 }
 
 .sidebar-section h3 {
@@ -265,15 +268,17 @@ body {
   border-radius: var(--border-radius);
   cursor: pointer;
   transition: all 0.2s;
+  margin-bottom: 4px;
 }
 
 .sidebar-item:hover {
-  background-color: var(--surface-color);
+  background-color: rgba(255, 92, 141, 0.1);
 }
 
 .sidebar-item.active {
-  background-color: var(--primary-light);
-  color: white;
+  background-color: rgba(255, 92, 141, 0.2);
+  color: var(--primary-color);
+  font-weight: 500;
 }
 
 .sidebar-item span {
@@ -306,18 +311,20 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px 16px;
   background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: 20px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
+  font-weight: 500;
 }
 
 .action-btn:hover {
   background-color: var(--primary-dark);
+  transform: translateY(-1px);
 }
 
 .action-btn.danger {
@@ -347,11 +354,13 @@ body {
   box-shadow: var(--shadow-sm);
   transition: all 0.2s;
   cursor: pointer;
+  border: 1px solid var(--border-color);
 }
 
 .collection-card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+  border-color: var(--primary-light);
 }
 
 .collection-card-header {
@@ -363,7 +372,8 @@ body {
 
 .collection-title {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--primary-color);
 }
 
 .collection-date {
@@ -379,16 +389,18 @@ body {
 }
 
 .tab-preview {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 4px;
   overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .tab-preview img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: white;
 }
 
 .collection-info {
@@ -420,16 +432,21 @@ body {
   box-shadow: var(--shadow-sm);
   transition: all 0.2s;
   cursor: pointer;
+  border: 1px solid var(--border-color);
 }
 
 .tab-card:hover {
   box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
 }
 
 .tab-card-favicon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   margin-right: 12px;
+  border-radius: 4px;
+  background-color: white;
+  object-fit: contain;
 }
 
 .tab-card-title {
@@ -438,6 +455,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
 }
 
 .tab-card-actions {
@@ -515,6 +533,31 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+}
+
+.tab-favicon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border-radius: 2px;
+  background-color: white;
+  object-fit: contain;
+}
+
+.tab-title {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modal-actions {
@@ -615,4 +658,8 @@ body {
 
 .small-button:hover {
   background-color: var(--border-color);
-} 
+}
+
+.color-picker {
+  margin: 5px 0px 16px 0px;
+}
