@@ -131,14 +131,37 @@
     <div id="save-collection-modal" class="modal">
       <div class="modal-content">
         <h3>Save Collection</h3>
-        <input type="text" id="collection-name" placeholder="Collection Name">
-        <div class="setting-item">
-          <select id="collection-space">
-            <option value="personal">Personal</option>
-            <option value="work">Work</option>
-            <option value="research">Research</option>
-          </select>
+
+        <div class="save-options">
+          <div class="save-option">
+            <input type="radio" id="new-collection-option" name="save-option" value="new" checked>
+            <label for="new-collection-option">New Collection</label>
+          </div>
+          <div class="save-option">
+            <input type="radio" id="existing-collection-option" name="save-option" value="existing">
+            <label for="existing-collection-option">Existing Collection</label>
+          </div>
         </div>
+
+        <div id="new-collection-form">
+          <input type="text" id="collection-name" placeholder="Collection Name">
+          <div class="setting-item">
+            <select id="collection-space">
+              <option value="personal">Personal</option>
+              <option value="work">Work</option>
+              <option value="research">Research</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="existing-collection-form" style="display: none;">
+          <div class="setting-item">
+            <select id="existing-collection-select">
+              <option value="">Select a collection...</option>
+            </select>
+          </div>
+        </div>
+
         <div class="selected-tabs-list" id="selected-tabs"></div>
         <div class="modal-actions">
           <button id="cancel-save" class="button secondary">Cancel</button>

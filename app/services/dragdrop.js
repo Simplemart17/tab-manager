@@ -11,11 +11,11 @@ class DragDropService {
   // Set up drag and drop for a tab element
   setupTabDragDrop(tabElement, tabId, collectionId) {
     tabElement.setAttribute('draggable', 'true');
-    
+
     tabElement.addEventListener('dragstart', (e) => {
       this.handleTabDragStart(e, tabId, collectionId);
     });
-    
+
     tabElement.addEventListener('dragend', (e) => {
       this.handleDragEnd(e);
     });
@@ -24,28 +24,28 @@ class DragDropService {
   // Set up drag and drop for a collection element
   setupCollectionDragDrop(collectionElement, collectionId) {
     collectionElement.setAttribute('draggable', 'true');
-    
+
     collectionElement.addEventListener('dragstart', (e) => {
       this.handleCollectionDragStart(e, collectionId);
     });
-    
+
     collectionElement.addEventListener('dragend', (e) => {
       this.handleDragEnd(e);
     });
-    
+
     // Make collection a drop target for tabs
     collectionElement.addEventListener('dragover', (e) => {
       this.handleDragOver(e);
     });
-    
+
     collectionElement.addEventListener('dragenter', (e) => {
       this.handleDragEnter(e, collectionElement);
     });
-    
+
     collectionElement.addEventListener('dragleave', (e) => {
       this.handleDragLeave(e, collectionElement);
     });
-    
+
     collectionElement.addEventListener('drop', (e) => {
       this.handleCollectionDrop(e, collectionId);
     });
@@ -56,15 +56,15 @@ class DragDropService {
     spaceElement.addEventListener('dragover', (e) => {
       this.handleDragOver(e);
     });
-    
+
     spaceElement.addEventListener('dragenter', (e) => {
       this.handleDragEnter(e, spaceElement);
     });
-    
+
     spaceElement.addEventListener('dragleave', (e) => {
       this.handleDragLeave(e, spaceElement);
     });
-    
+
     spaceElement.addEventListener('drop', (e) => {
       this.handleSpaceDrop(e, spaceId);
     });
@@ -75,15 +75,15 @@ class DragDropService {
     this.draggedItem = tabId;
     this.draggedItemType = 'tab';
     this.sourceContainerId = collectionId;
-    
+
     e.dataTransfer.setData('application/json', JSON.stringify({
       type: 'tab',
       id: tabId,
       sourceId: collectionId
     }));
-    
+
     e.dataTransfer.effectAllowed = 'move';
-    
+
     // Add a class to the element being dragged
     e.target.classList.add('dragging');
   }
@@ -92,14 +92,14 @@ class DragDropService {
   handleCollectionDragStart(e, collectionId) {
     this.draggedItem = collectionId;
     this.draggedItemType = 'collection';
-    
+
     e.dataTransfer.setData('application/json', JSON.stringify({
       type: 'collection',
       id: collectionId
     }));
-    
+
     e.dataTransfer.effectAllowed = 'move';
-    
+
     // Add a class to the element being dragged
     e.target.classList.add('dragging');
   }
@@ -124,7 +124,7 @@ class DragDropService {
   // Handle drag end
   handleDragEnd(e) {
     e.target.classList.remove('dragging');
-    
+
     // Reset drag state
     this.draggedItem = null;
     this.draggedItemType = null;
@@ -134,19 +134,32 @@ class DragDropService {
   // Handle drop on a collection
   async handleCollectionDrop(e, targetCollectionId) {
     e.preventDefault();
-    
+
     // Remove drag-over class
     e.currentTarget.classList.remove('drag-over');
-    
+
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      
+
       if (data.type === 'tab' && data.sourceId !== targetCollectionId) {
+        // Get source and target collection names for the notification
+        const sourceCollection = await dataService.getCollection(data.sourceId);
+        const targetCollection = await dataService.getCollection(targetCollectionId);
+
         // Move tab from one collection to another
         await dataService.moveTabBetweenCollections(data.sourceId, targetCollectionId, data.id);
-        
+
         // Trigger an event to notify that data has changed
         this.dispatchDataChangeEvent();
+
+        // Dispatch a custom event for the notification
+        const notificationEvent = new CustomEvent('toby-tab-moved', {
+          detail: {
+            sourceCollection: sourceCollection?.name || 'Unknown collection',
+            targetCollection: targetCollection?.name || 'Unknown collection'
+          }
+        });
+        document.dispatchEvent(notificationEvent);
       }
     } catch (error) {
       console.error('Error handling collection drop:', error);
@@ -156,17 +169,17 @@ class DragDropService {
   // Handle drop on a space
   async handleSpaceDrop(e, targetSpaceId) {
     e.preventDefault();
-    
+
     // Remove drag-over class
     e.currentTarget.classList.remove('drag-over');
-    
+
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      
+
       if (data.type === 'collection') {
         // Move collection to a different space
         await dataService.updateCollection(data.id, { spaceId: targetSpaceId });
-        
+
         // Trigger an event to notify that data has changed
         this.dispatchDataChangeEvent();
       }

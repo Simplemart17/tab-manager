@@ -18,6 +18,13 @@ const exportDataBtn = document.getElementById('export-data-btn');
 const importDataBtn = document.getElementById('import-data-btn');
 const importDataFile = document.getElementById('import-data-file');
 
+// Save Collection Modal Elements
+const newCollectionOption = document.getElementById('new-collection-option');
+const existingCollectionOption = document.getElementById('existing-collection-option');
+const newCollectionForm = document.getElementById('new-collection-form');
+const existingCollectionForm = document.getElementById('existing-collection-form');
+const existingCollectionSelect = document.getElementById('existing-collection-select');
+
 // Tabs Pane Elements
 const tabsPane = document.getElementById('tabs-pane');
 const tabsToggleBtn = document.getElementById('tabs-toggle-btn');
@@ -100,6 +107,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Listen for data changes from drag and drop operations
     document.addEventListener('toby-data-change', async () => {
       await loadCollections();
+    });
+
+    // Listen for tab moved events
+    document.addEventListener('toby-tab-moved', (e) => {
+      const { sourceCollection, targetCollection } = e.detail;
+      showNotification(`Tab moved from "${sourceCollection}" to "${targetCollection}"`);
     });
 
     // Listen for tab updates
@@ -742,13 +755,48 @@ function showSearchResults(results, query) {
 }
 
 // Show save collection modal
-function showSaveModal(tabs) {
+async function showSaveModal(tabs) {
   selectedTabs = tabs;
 
   // Clear previous data
   collectionNameInput.value = '';
   selectedTabsList.innerHTML = '';
   collectionSpaceSelect.value = activeWorkspace;
+
+  // Reset save options
+  newCollectionOption.checked = true;
+  existingCollectionOption.checked = false;
+  newCollectionForm.style.display = 'block';
+  existingCollectionForm.style.display = 'none';
+
+  // Set up event listeners for the radio buttons
+  newCollectionOption.addEventListener('change', () => {
+    if (newCollectionOption.checked) {
+      newCollectionForm.style.display = 'block';
+      existingCollectionForm.style.display = 'none';
+    }
+  });
+
+  existingCollectionOption.addEventListener('change', () => {
+    if (existingCollectionOption.checked) {
+      newCollectionForm.style.display = 'none';
+      existingCollectionForm.style.display = 'block';
+    }
+  });
+
+  // Populate existing collections dropdown
+  existingCollectionSelect.innerHTML = '<option value="">Select a collection...</option>';
+  try {
+    const collections = await dataService.getCollections();
+    collections.forEach(collection => {
+      const option = document.createElement('option');
+      option.value = collection.id;
+      option.textContent = collection.name;
+      existingCollectionSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error loading collections for dropdown:', error);
+  }
 
   // Add selected tabs to the list
   selectedTabs.forEach(tab => {
@@ -871,45 +919,118 @@ function addEmailToShare() {
 
 // Save collection
 async function saveCollection() {
-  const name = collectionNameInput.value.trim();
-  const spaceId = collectionSpaceSelect.value;
+  // Check if we're saving to a new or existing collection
+  const saveToExisting = existingCollectionOption.checked;
 
-  if (!name) {
-    alert('Please enter a collection name');
-    return;
-  }
+  if (saveToExisting) {
+    // Save to existing collection
+    const collectionId = existingCollectionSelect.value;
 
-  try {
-    // Format tabs for storage
-    const tabs = selectedTabs.map(tab => {
-      // Check if favicon is valid
-      let favicon = getDefaultIconPath(); // Default fallback
+    if (!collectionId) {
+      alert('Please select a collection');
+      return;
+    }
 
-      if (tab.favIconUrl) {
-        // We'll store the original favicon URL, but we've already handled
-        // displaying the default icon if it fails to load
-        favicon = tab.favIconUrl;
+    if (selectedTabs.length === 0) {
+      alert('No tabs selected');
+      return;
+    }
+
+    try {
+      // Get the existing collection
+      const existingCollection = await dataService.getCollection(collectionId);
+
+      if (!existingCollection) {
+        throw new Error('Collection not found');
       }
 
-      return {
-        id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-        url: tab.url,
-        title: tab.title,
-        favicon: favicon
-      };
-    });
+      // Format tabs for storage
+      const newTabs = selectedTabs.map(tab => {
+        // Check if favicon is valid
+        let favicon = getDefaultIconPath(); // Default fallback
 
-    // Create collection
-    await dataService.createCollection(name, spaceId, tabs);
+        if (tab.favIconUrl) {
+          // We'll store the original favicon URL, but we've already handled
+          // displaying the default icon if it fails to load
+          favicon = tab.favIconUrl;
+        }
 
-    // Reload collections
-    await loadCollections();
+        return {
+          id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          url: tab.url,
+          title: tab.title,
+          favicon: favicon
+        };
+      });
 
-    // Hide modal
-    hideSaveModal();
-  } catch (error) {
-    console.error('Error saving collection:', error);
-    alert('Error saving collection. Please try again.');
+      // Add new tabs to existing collection
+      const updatedTabs = [...(existingCollection.tabs || []), ...newTabs];
+
+      // Update the collection in the database
+      await dataService.updateCollection(collectionId, { tabs: updatedTabs });
+
+      // Reload collections
+      await loadCollections();
+
+      // Hide modal
+      hideSaveModal();
+
+      // Show success message
+      showNotification('Tabs added to collection successfully');
+    } catch (error) {
+      console.error('Error adding tabs to collection:', error);
+      alert('Error adding tabs to collection. Please try again.');
+    }
+  } else {
+    // Save as new collection
+    const name = collectionNameInput.value.trim();
+    const spaceId = collectionSpaceSelect.value;
+
+    if (!name) {
+      alert('Please enter a collection name');
+      return;
+    }
+
+    if (selectedTabs.length === 0) {
+      alert('No tabs selected');
+      return;
+    }
+
+    try {
+      // Format tabs for storage
+      const tabs = selectedTabs.map(tab => {
+        // Check if favicon is valid
+        let favicon = getDefaultIconPath(); // Default fallback
+
+        if (tab.favIconUrl) {
+          // We'll store the original favicon URL, but we've already handled
+          // displaying the default icon if it fails to load
+          favicon = tab.favIconUrl;
+        }
+
+        return {
+          id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          url: tab.url,
+          title: tab.title,
+          favicon: favicon
+        };
+      });
+
+      // Create collection
+      await dataService.createCollection(name, spaceId, tabs);
+
+      // Reload collections
+      await loadCollections();
+
+      // Hide modal
+      hideSaveModal();
+
+      // Show success message
+      showNotification('Collection saved successfully');
+    } catch (error) {
+      console.error('Error saving collection:', error);
+      alert('Error saving collection. Please try again.');
+    }
   }
 }
 
@@ -1179,9 +1300,38 @@ async function importData(jsonData) {
     await loadSpaces();
     await loadCollections();
 
-    alert('Data imported successfully!');
+    showNotification('Data imported successfully!');
   } catch (error) {
     console.error('Error importing data:', error);
     alert('Error importing data. Please check the file format and try again.');
   }
+}
+
+// Show notification
+function showNotification(message, type = 'success') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+
+  // Add close button
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'notification-close';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.addEventListener('click', () => {
+    notification.remove();
+  });
+
+  notification.appendChild(closeBtn);
+
+  // Add to document
+  document.body.appendChild(notification);
+
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    notification.classList.add('fade-out');
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 3000);
 }
