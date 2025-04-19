@@ -1,9 +1,13 @@
 :root {
   /* Common variables */
-  --primary-color: #ff5c8d; /* Toby's pink color */
-  --primary-color-rgb: 255, 92, 141; /* RGB values for primary color */
-  --primary-light: #ff7ca3;
-  --primary-dark: #e54b7b;
+  --primary-color: #914CE6; /* Main purple color */
+  --primary-color-rgb: 145, 76, 230; /* RGB values for primary color */
+  --primary-light: #A76EEA; /* Lighter purple */
+  --primary-dark: #7A3BC9; /* Darker purple */
+  --accent-color: #4ECDC4; /* Teal accent color */
+  --accent-color-rgb: 78, 205, 196; /* RGB values for accent color */
+  --accent-light: #6ED9D2; /* Lighter teal */
+  --accent-dark: #3AAFA9; /* Darker teal */
   --success-color: #4caf50;
   --error-color: #f44336;
   --warning-color: #ff9800;
@@ -13,60 +17,68 @@
   /* Light theme variables */
   --text-color: #333;
   --text-secondary: #666;
-  --background-color: #f8f9fa;
+  --background-color: #F8F7FC; /* Very light purple tint */
   --surface-color: #fff;
-  --border-color: #e0e0e0;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08);
+  --border-color: #E6E1F9; /* Light purple border */
+  --shadow-sm: 0 1px 3px rgba(145, 76, 230, 0.08);
+  --shadow-md: 0 4px 6px rgba(145, 76, 230, 0.08);
+  --shadow-lg: 0 10px 15px rgba(145, 76, 230, 0.08);
 
   /* Card colors - light theme */
   --card-bg: #fff;
-  --card-header-bg: #f5f5f5;
-  --card-icon-bg: #f0f0f0;
-  --card-border: #e0e0e0;
+  --card-header-bg: #F5F2FF; /* Very light purple background */
+  --card-icon-bg: #F0EDFF; /* Light purple icon background */
+  --card-border: #E6E1F9;
   --card-text: #333;
   --card-text-secondary: #666;
 
   /* Collection colors - light theme */
   --collection-bg: #fff;
-  --collection-header-bg: #f5f5f5;
+  --collection-header-bg: #F5F2FF;
   --collection-content-bg: #fff;
-  --collection-border: #e0e0e0;
+  --collection-border: #E6E1F9;
 
   /* Modal colors - light theme */
   --modal-bg: #fff;
   --modal-text: #333;
+
+  /* Accent usage in light theme */
+  --accent-element-bg: rgba(78, 205, 196, 0.1); /* Very subtle teal background */
+  --accent-element-border: #4ECDC4; /* Teal border for accented elements */
 }
 
 [data-theme="dark"] {
   /* Dark theme text and background */
   --text-color: #e0e0e0;
   --text-secondary: #a0a0a0;
-  --background-color: #1a1a25;
-  --surface-color: #252533;
-  --border-color: #3a3a48;
+  --background-color: #1A1A2E; /* Slightly more blue-toned dark background */
+  --surface-color: #232342; /* Slightly more purple-toned surface */
+  --border-color: #3A3A60; /* More purple-toned border */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
 
   /* Card colors - dark theme */
-  --card-bg: #2d2d3a;
-  --card-header-bg: #252533;
-  --card-icon-bg: #3a3a48;
-  --card-border: #3a3a48;
+  --card-bg: #2D2D4A; /* Slightly more purple-toned card */
+  --card-header-bg: #232342;
+  --card-icon-bg: #3A3A60;
+  --card-border: #3A3A60;
   --card-text: #e0e0e0;
   --card-text-secondary: #9e9ea7;
 
   /* Collection colors - dark theme */
-  --collection-bg: #252533;
-  --collection-header-bg: #252533;
-  --collection-content-bg: #1e1e2a;
-  --collection-border: #3a3a48;
+  --collection-bg: #232342;
+  --collection-header-bg: #232342;
+  --collection-content-bg: #1A1A2E;
+  --collection-border: #3A3A60;
 
   /* Modal colors - dark theme */
-  --modal-bg: #252533;
+  --modal-bg: #232342;
   --modal-text: #e0e0e0;
+
+  /* Accent usage in dark theme */
+  --accent-element-bg: rgba(78, 205, 196, 0.15); /* Subtle teal background for accented elements */
+  --accent-element-border: #4ECDC4; /* Teal border for accented elements */
 }
 
 * {
@@ -312,11 +324,11 @@ body {
 }
 
 .sidebar-item:hover {
-  background-color: rgba(255, 92, 141, 0.1);
+  background-color: rgba(var(--primary-color-rgb), 0.1);
 }
 
 .sidebar-item.active {
-  background-color: rgba(255, 92, 141, 0.2);
+  background-color: rgba(var(--primary-color-rgb), 0.2);
   color: var(--primary-color);
   font-weight: 500;
 }
@@ -354,7 +366,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: var(--primary-color);
+  background-color: var(--accent-color);
   color: white;
   border: none;
   border-radius: 20px;
@@ -365,7 +377,7 @@ body {
 }
 
 .action-btn:hover {
-  background-color: var(--primary-dark);
+  background-color: var(--accent-dark);
   transform: translateY(-1px);
 }
 
@@ -592,8 +604,8 @@ body {
 }
 
 .drag-over {
-  border: 2px dashed var(--primary-color) !important;
-  background-color: rgba(var(--primary-color-rgb), 0.05);
+  border: 2px dashed var(--accent-color) !important;
+  background-color: var(--accent-element-bg);
 }
 
 /* Notification Styles */
@@ -616,7 +628,7 @@ body {
 }
 
 .notification.success {
-  border-left: 4px solid var(--success-color);
+  border-left: 4px solid var(--accent-color);
 }
 
 .notification.error {
