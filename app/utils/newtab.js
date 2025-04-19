@@ -128,10 +128,14 @@ async function loadUserPreferences() {
     // Apply theme
     if (userPreferences.theme === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
+    } else if (userPreferences.theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
     } else if (userPreferences.theme === 'system') {
       const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
       if (prefersDarkScheme.matches) {
         document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
       }
     }
 
@@ -951,13 +955,13 @@ async function saveSettings() {
     if (userPreferences.theme === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else if (userPreferences.theme === 'light') {
-      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.setAttribute('data-theme', 'light');
     } else if (userPreferences.theme === 'system') {
       const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
       if (prefersDarkScheme.matches) {
         document.documentElement.setAttribute('data-theme', 'dark');
       } else {
-        document.documentElement.removeAttribute('data-theme');
+        document.documentElement.setAttribute('data-theme', 'light');
       }
     }
 
