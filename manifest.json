@@ -2,19 +2,19 @@
   "manifest_version": 3,
   "name": "Tab Manager",
   "version": "1.0.0",
-  "description": "Advanced tab management with premium features including cloud sync and team collaboration",
+  "description": "Simple tab management",
   "icons": {
-    "16": "assets/icons/icon16.png",
-    "48": "assets/icons/icon48.png",
-    "128": "assets/icons/icon128.png"
+    "16": "app/assets/icons/icon16.png",
+    "48": "app/assets/icons/icon48.png",
+    "128": "app/assets/icons/icon128.png"
   },
   "action": {
     "default_title": "Tab Manager",
     "default_popup": "app/pages/popup.html",
     "default_icon": {
-      "16": "assets/icons/icon16.png",
-      "48": "assets/icons/icon48.png",
-      "128": "assets/icons/icon128.png"
+      "16": "app/assets/icons/icon16.png",
+      "48": "app/assets/icons/icon48.png",
+      "128": "app/assets/icons/icon128.png"
     }
   },
   "permissions": [
@@ -58,7 +58,7 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "web_accessible_resources": [{
-    "resources": ["assets/*"],
+    "resources": ["assets/*", "app/assets/*"],
     "matches": ["<all_urls>"]
   }]
-} 
+}
