@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tab Manager Pro</title>
+  <title>Simple Tabs</title>
   <link rel="stylesheet" href="../styles/popup.css">
 </head>
 <body>
   <div class="popup-container">
     <header class="popup-header">
-      <h1>Tab Manager Pro</h1>
+      <h1>Simple Tabs</h1>
       <div class="header-controls">
         <button id="sync-btn" class="icon-button" title="Sync tabs">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -27,14 +27,35 @@
         </button>
       </div>
     </header>
-    
+
     <div class="tabs-section">
       <div class="section-header">
         <h2>Open Tabs</h2>
       </div>
       <div id="open-tabs" class="tabs-list"></div>
     </div>
-    
+
+    <div class="spaces-section">
+      <div class="section-header">
+        <h2>Spaces</h2>
+        <button id="new-workspace-btn" class="small-button">New</button>
+      </div>
+      <div id="workspaces-list" class="spaces-list">
+        <div class="space-item active" data-space-id="personal">
+          <div class="space-color" style="background-color: #ff5c8d;"></div>
+          <div class="space-name">Personal</div>
+        </div>
+        <div class="space-item" data-space-id="work">
+          <div class="space-color" style="background-color: #4caf50;"></div>
+          <div class="space-name">Work</div>
+        </div>
+        <div class="space-item" data-space-id="research">
+          <div class="space-color" style="background-color: #ff9800;"></div>
+          <div class="space-name">Research</div>
+        </div>
+      </div>
+    </div>
+
     <div class="collections-section">
       <div class="section-header">
         <h2>Collections</h2>
@@ -42,12 +63,19 @@
       </div>
       <div id="collections-list" class="collections-list"></div>
     </div>
-    
+
     <!-- Save Collection Form -->
     <div id="save-collection-modal" class="modal">
       <div class="modal-content">
         <h3>Save Collection</h3>
         <input type="text" id="collection-name" placeholder="Collection Name">
+        <div class="setting-item">
+          <select id="collection-space">
+            <option value="personal">Personal</option>
+            <option value="work">Work</option>
+            <option value="research">Research</option>
+          </select>
+        </div>
         <div class="selected-tabs-list" id="selected-tabs"></div>
         <div class="modal-actions">
           <button id="cancel-save" class="button secondary">Cancel</button>
@@ -55,7 +83,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Settings Form -->
     <div id="settings-modal" class="modal">
       <div class="modal-content">
@@ -92,7 +120,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Team Sharing Modal -->
     <div id="share-modal" class="modal">
       <div class="modal-content">
@@ -106,8 +134,8 @@
         </div>
       </div>
     </div>
-    
+
     <script src="../utils/popup.js"></script>
   </div>
 </body>
-</html> 
+</html>

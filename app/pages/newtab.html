@@ -10,7 +10,7 @@
   <div class="newtab-container">
     <header class="main-header">
       <div class="header-left">
-        <h1>Tab Manager Pro</h1>
+        <h1>Toby</h1>
         <div class="search-container">
           <input type="text" id="search-input" placeholder="Search tabs, collections, or the web...">
           <button id="search-btn">
@@ -48,11 +48,11 @@
         </div>
       </div>
     </header>
-    
+
     <div class="main-content">
       <div class="sidebar">
         <div class="sidebar-section">
-          <h3>Workspaces</h3>
+          <h3>Spaces</h3>
           <button id="new-workspace-btn" class="sidebar-new-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -72,7 +72,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="sidebar-section">
           <h3>Team</h3>
           <button id="invite-team-btn" class="sidebar-new-btn">
@@ -89,18 +89,10 @@
               <div class="avatar small">J</div>
               <span>John Doe (You)</span>
             </div>
-            <div class="sidebar-item">
-              <div class="avatar small">S</div>
-              <span>Sarah Johnson</span>
-            </div>
-            <div class="sidebar-item">
-              <div class="avatar small">M</div>
-              <span>Mike Smith</span>
-            </div>
           </div>
         </div>
       </div>
-      
+
       <div class="content-area">
         <div class="collections-section">
           <div class="section-header">
@@ -113,29 +105,47 @@
               New Collection
             </button>
           </div>
-          
+
           <div id="collections-grid" class="collections-grid">
             <!-- Collections will be added here dynamically -->
           </div>
         </div>
-        
+
         <div class="tabs-section">
           <div class="section-header">
             <h2>Open Tabs</h2>
+            <div class="tabs-actions">
+              <button id="save-all-tabs-btn" class="action-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save All
+              </button>
+            </div>
           </div>
-          
+
           <div id="tabs-container" class="tabs-container">
             <!-- Tabs will be added here dynamically -->
           </div>
         </div>
       </div>
     </div>
-    
+
     <!-- Save Collection Form -->
     <div id="save-collection-modal" class="modal">
       <div class="modal-content">
         <h3>Save Collection</h3>
         <input type="text" id="collection-name" placeholder="Collection Name">
+        <div class="setting-item">
+          <label for="collection-space">Space</label>
+          <select id="collection-space">
+            <option value="personal">Personal</option>
+            <option value="work">Work</option>
+            <option value="research">Research</option>
+          </select>
+        </div>
         <div class="selected-tabs-list" id="selected-tabs"></div>
         <div class="modal-actions">
           <button id="cancel-save" class="button secondary">Cancel</button>
@@ -143,7 +153,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Settings Form -->
     <div id="settings-modal" class="modal">
       <div class="modal-content">
@@ -189,13 +199,21 @@
             <input type="checkbox" id="show-notes" checked>
           </div>
         </div>
+        <div class="settings-group">
+          <h4>Data Management</h4>
+          <div class="setting-item">
+            <button id="export-data-btn" class="button secondary">Export Data</button>
+            <input type="file" id="import-data-file" style="display: none;" accept=".json">
+            <button id="import-data-btn" class="button secondary">Import Data</button>
+          </div>
+        </div>
         <div class="modal-actions">
           <button id="cancel-settings" class="button secondary">Cancel</button>
           <button id="save-settings" class="button primary">Save</button>
         </div>
       </div>
     </div>
-    
+
     <!-- Team Sharing Modal -->
     <div id="share-modal" class="modal">
       <div class="modal-content">
@@ -209,14 +227,13 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Workspace Modal -->
     <div id="workspace-modal" class="modal">
       <div class="modal-content">
         <h3>Create Workspace</h3>
         <input type="text" id="workspace-name" placeholder="Workspace Name">
-        <div class="setting-item">
-          <label for="workspace-color">Color</label>
+        <div class="color-picker">
           <input type="color" id="workspace-color" value="#4f5bd5">
         </div>
         <div class="modal-actions">
@@ -225,8 +242,8 @@
         </div>
       </div>
     </div>
-    
-    <script src="../utils/newtab.js"></script>
+
+    <script type="module" src="../utils/newtab.js"></script>
   </div>
 </body>
-</html> 
+</html>
