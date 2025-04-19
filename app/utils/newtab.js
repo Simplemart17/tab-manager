@@ -1,4 +1,6 @@
-// New Tab script for Tab Manager Pro
+// New Tab script for Toby Tab Manager
+import dataService from '../services/data.js';
+import dragDropService from '../services/dragdrop.js';
 
 // DOM Elements
 const collectionsGrid = document.getElementById('collections-grid');
@@ -8,15 +10,14 @@ const searchBtn = document.getElementById('search-btn');
 const syncBtn = document.getElementById('sync-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const saveAllTabsBtn = document.getElementById('save-all-tabs-btn');
-const closeAllTabsBtn = document.getElementById('close-all-tabs-btn');
 const newCollectionBtn = document.getElementById('new-collection-btn');
 const newWorkspaceBtn = document.getElementById('new-workspace-btn');
 const inviteTeamBtn = document.getElementById('invite-team-btn');
-const userBtn = document.getElementById('user-btn');
-const userProfileLink = document.getElementById('user-profile-link');
-const logoutLink = document.getElementById('logout-link');
 const workspacesList = document.getElementById('workspaces-list');
-const teamMembersList = document.getElementById('team-members-list');
+const collectionSpaceSelect = document.getElementById('collection-space');
+const exportDataBtn = document.getElementById('export-data-btn');
+const importDataBtn = document.getElementById('import-data-btn');
+const importDataFile = document.getElementById('import-data-file');
 
 // Modals
 const saveCollectionModal = document.getElementById('save-collection-modal');
@@ -44,7 +45,7 @@ const saveSettingsBtn = document.getElementById('save-settings');
 // Share Modal
 const shareEmailInput = document.getElementById('share-email');
 const addEmailBtn = document.getElementById('add-email');
-const shareEmailsList = document.getElementById('share-emails-list');
+const shareEmailsList = document.getElementById('share-emails');
 const cancelShareBtn = document.getElementById('cancel-share');
 const confirmShareBtn = document.getElementById('confirm-share');
 
@@ -56,21 +57,9 @@ const confirmWorkspaceBtn = document.getElementById('confirm-workspace');
 
 // State
 let currentTabs = [];
-let collections = {};
 let selectedTabs = [];
 let emailsToShare = [];
-let currentCollectionToShare = null;
-let workspaces = [
-  { id: 'personal', name: 'Personal', color: '#4f5bd5' },
-  { id: 'work', name: 'Work', color: '#4caf50' },
-  { id: 'research', name: 'Research', color: '#ff9800' }
-];
 let activeWorkspace = 'personal';
-let teamMembers = [
-  { id: 'user1', name: 'John Doe', avatar: 'J', isCurrentUser: true },
-  { id: 'user2', name: 'Sarah Johnson', avatar: 'S', isCurrentUser: false },
-  { id: 'user3', name: 'Mike Smith', avatar: 'M', isCurrentUser: false }
-];
 let userPreferences = {
   theme: 'light',
   syncEnabled: true,
@@ -82,49 +71,127 @@ let userPreferences = {
 };
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  loadUserPreferences();
-  loadCollections();
-  loadOpenTabs();
-  setupEventListeners();
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Initialize data service
+    await dataService.init();
+
+    // Load user preferences
+    await loadUserPreferences();
+
+    // Load spaces
+    await loadSpaces();
+
+    // Load collections
+    await loadCollections();
+
+    // Load open tabs
+    loadOpenTabs();
+
+    // Setup event listeners
+    setupEventListeners();
+
+    // Listen for data changes from drag and drop operations
+    document.addEventListener('toby-data-change', async () => {
+      await loadCollections();
+    });
+  } catch (error) {
+    console.error('Error initializing app:', error);
+  }
 });
 
 // Load user preferences
-function loadUserPreferences() {
-  chrome.storage.local.get(['userPreferences'], (result) => {
-    if (result.userPreferences) {
-      userPreferences = result.userPreferences;
-      
-      // Apply theme
-      if (userPreferences.theme === 'dark') {
+async function loadUserPreferences() {
+  try {
+    const settings = await dataService.getSettings();
+    userPreferences = settings;
+
+    // Apply theme
+    if (userPreferences.theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else if (userPreferences.theme === 'system') {
+      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+      if (prefersDarkScheme.matches) {
         document.documentElement.setAttribute('data-theme', 'dark');
-      } else if (userPreferences.theme === 'system') {
-        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-        if (prefersDarkScheme.matches) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        }
       }
-      
-      // Update form elements
-      themeSelect.value = userPreferences.theme;
-      syncEnabledCheck.checked = userPreferences.syncEnabled;
-      autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
-      collaborationEnabledCheck.checked = userPreferences.collaborationEnabled;
-      showRecentCheck.checked = userPreferences.showRecent;
-      showWeatherCheck.checked = userPreferences.showWeather;
-      showNotesCheck.checked = userPreferences.showNotes;
     }
+
+    // Update form elements
+    themeSelect.value = userPreferences.theme;
+    syncEnabledCheck.checked = userPreferences.syncEnabled;
+    autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
+    collaborationEnabledCheck.checked = userPreferences.collaborationEnabled;
+    showRecentCheck.checked = userPreferences.showRecent;
+    showWeatherCheck.checked = userPreferences.showWeather;
+    showNotesCheck.checked = userPreferences.showNotes;
+  } catch (error) {
+    console.error('Error loading user preferences:', error);
+  }
+}
+
+// Load spaces
+async function loadSpaces() {
+  try {
+    const spaces = await dataService.getSpaces();
+
+    // Update workspaces list
+    renderWorkspaces(spaces);
+
+    // Update collection space select
+    updateCollectionSpaceSelect(spaces);
+  } catch (error) {
+    console.error('Error loading spaces:', error);
+  }
+}
+
+// Render workspaces
+function renderWorkspaces(spaces) {
+  workspacesList.innerHTML = '';
+
+  spaces.forEach(space => {
+    const workspaceItem = document.createElement('div');
+    workspaceItem.className = 'sidebar-item';
+    workspaceItem.dataset.spaceId = space.id;
+    if (space.id === activeWorkspace) {
+      workspaceItem.classList.add('active');
+    }
+
+    workspaceItem.innerHTML = `<span>${space.name}</span>`;
+
+    workspaceItem.addEventListener('click', () => {
+      setActiveWorkspace(space.id);
+    });
+
+    // Set up as drop target for collections
+    dragDropService.setupSpaceDropTarget(workspaceItem, space.id);
+
+    workspacesList.appendChild(workspaceItem);
   });
 }
 
-// Load collections from storage
-function loadCollections() {
-  chrome.storage.local.get(['collections'], (result) => {
-    if (result.collections) {
-      collections = result.collections;
-      renderCollections();
-    }
+// Update collection space select
+function updateCollectionSpaceSelect(spaces) {
+  collectionSpaceSelect.innerHTML = '';
+
+  spaces.forEach(space => {
+    const option = document.createElement('option');
+    option.value = space.id;
+    option.textContent = space.name;
+    collectionSpaceSelect.appendChild(option);
   });
+
+  collectionSpaceSelect.value = activeWorkspace;
+}
+
+// Load collections
+async function loadCollections() {
+  try {
+    // Filter collections by active workspace
+    const collections = await dataService.getCollectionsBySpace(activeWorkspace);
+    renderCollections(collections);
+  } catch (error) {
+    console.error('Error loading collections:', error);
+  }
 }
 
 // Load open tabs
@@ -135,11 +202,11 @@ function loadOpenTabs() {
   });
 }
 
-// Render collections grid
-function renderCollections() {
+// Render collections
+function renderCollections(collections) {
   collectionsGrid.innerHTML = '';
-  
-  Object.values(collections).forEach(collection => {
+
+  collections.forEach(collection => {
     const collectionCard = createCollectionCard(collection);
     collectionsGrid.appendChild(collectionCard);
   });
@@ -150,70 +217,110 @@ function createCollectionCard(collection) {
   const card = document.createElement('div');
   card.className = 'collection-card';
   card.dataset.collectionId = collection.id;
-  
+
+  // Find the workspace color
+  const spaceId = collection.spaceId || collection.workspace;
+  if (spaceId) {
+    dataService.getSpace(spaceId).then(space => {
+      if (space) {
+        card.style.borderLeft = `4px solid ${space.color}`;
+      }
+    });
+  }
+
   const header = document.createElement('div');
   header.className = 'collection-card-header';
-  
+
   const title = document.createElement('div');
   title.className = 'collection-title';
   title.textContent = collection.name;
-  
+
   const date = document.createElement('div');
   date.className = 'collection-date';
   date.textContent = formatDate(collection.createdAt);
-  
+
   header.appendChild(title);
   header.appendChild(date);
-  
+
   const preview = document.createElement('div');
   preview.className = 'collection-tabs-preview';
-  
+
   // Show up to 10 tab favicons
-  collection.tabs.slice(0, 10).forEach(tab => {
-    const tabPreview = document.createElement('div');
-    tabPreview.className = 'tab-preview';
-    
-    const favicon = document.createElement('img');
-    favicon.src = tab.favicon || chrome.runtime.getURL('assets/icons/icon16.png');
-    favicon.onerror = () => {
-      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
-    };
-    
-    tabPreview.appendChild(favicon);
-    preview.appendChild(tabPreview);
-  });
-  
+  if (collection.tabs) {
+    collection.tabs.slice(0, 10).forEach(tab => {
+      const tabPreview = document.createElement('div');
+      tabPreview.className = 'tab-preview';
+
+      const favicon = document.createElement('img');
+
+      // Set a default icon first to ensure we always have something
+      favicon.src = getDefaultIconPath();
+
+      // Then try to load the actual favicon if available
+      if (tab.favicon) {
+        const tempImg = new Image();
+        tempImg.onload = () => {
+          favicon.src = tab.favicon;
+        };
+        tempImg.onerror = () => {
+          // Keep the default icon if favicon fails to load
+          favicon.src = getDefaultIconPath();
+        };
+        tempImg.src = tab.favicon;
+      }
+
+      // Fallback in case the above logic fails
+      favicon.onerror = () => {
+        favicon.src = getDefaultIconPath();
+      };
+
+      tabPreview.appendChild(favicon);
+      preview.appendChild(tabPreview);
+    });
+  }
+
   const info = document.createElement('div');
   info.className = 'collection-info';
-  
+
   const tabCount = document.createElement('div');
-  tabCount.textContent = `${collection.tabs.length} tab${collection.tabs.length !== 1 ? 's' : ''}`;
-  
+  tabCount.textContent = `${collection.tabs ? collection.tabs.length : 0} tab${collection.tabs && collection.tabs.length !== 1 ? 's' : ''}`;
+
   const owner = document.createElement('div');
   owner.className = 'collection-owner';
-  
-  const shared = collection.shared ? `· Shared with ${collection.sharedWith?.length || 0} people` : '';
-  owner.textContent = `You ${shared}`;
-  
+
+  // Get space name
+  if (spaceId) {
+    dataService.getSpace(spaceId).then(space => {
+      const spaceName = space ? space.name : 'Unknown';
+      const shared = collection.shared ? `· Shared with ${collection.sharedWith?.length || 0} people` : '';
+      owner.textContent = `${spaceName} ${shared}`;
+    });
+  } else {
+    owner.textContent = 'Personal';
+  }
+
   info.appendChild(tabCount);
   info.appendChild(owner);
-  
+
   card.appendChild(header);
   card.appendChild(preview);
   card.appendChild(info);
-  
+
   // Event listener to open collection when card is clicked
   card.addEventListener('click', () => {
     openCollection(collection.id);
   });
-  
+
+  // Set up drag and drop
+  dragDropService.setupCollectionDragDrop(card, collection.id);
+
   return card;
 }
 
 // Render open tabs
 function renderOpenTabs() {
   tabsContainer.innerHTML = '';
-  
+
   currentTabs.forEach(tab => {
     const tabCard = createTabCard(tab);
     tabsContainer.appendChild(tabCard);
@@ -225,21 +332,38 @@ function createTabCard(tab) {
   const card = document.createElement('div');
   card.className = 'tab-card';
   card.dataset.tabId = tab.id;
-  
+
   const favicon = document.createElement('img');
   favicon.className = 'tab-card-favicon';
-  favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
+
+  // Set a default icon first to ensure we always have something
+  favicon.src = getDefaultIconPath();
+
+  // Then try to load the actual favicon if available
+  if (tab.favIconUrl) {
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      favicon.src = tab.favIconUrl;
+    };
+    tempImg.onerror = () => {
+      // Keep the default icon if favicon fails to load
+      favicon.src = getDefaultIconPath();
+    };
+    tempImg.src = tab.favIconUrl;
+  }
+
+  // Fallback in case the above logic fails
   favicon.onerror = () => {
-    favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
+    favicon.src = getDefaultIconPath();
   };
-  
+
   const title = document.createElement('div');
   title.className = 'tab-card-title';
   title.textContent = tab.title;
-  
+
   const actions = document.createElement('div');
   actions.className = 'tab-card-actions';
-  
+
   const saveBtn = document.createElement('button');
   saveBtn.className = 'tab-card-btn';
   saveBtn.innerHTML = `
@@ -254,7 +378,7 @@ function createTabCard(tab) {
     e.stopPropagation();
     showSaveModal([tab]);
   });
-  
+
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-card-btn close';
   closeBtn.innerHTML = `
@@ -269,19 +393,22 @@ function createTabCard(tab) {
     chrome.tabs.remove(tab.id);
     card.remove();
   });
-  
+
   actions.appendChild(saveBtn);
   actions.appendChild(closeBtn);
-  
+
   card.appendChild(favicon);
   card.appendChild(title);
   card.appendChild(actions);
-  
+
   card.addEventListener('click', () => {
     chrome.tabs.update(tab.id, { active: true });
     chrome.windows.update(tab.windowId, { focused: true });
   });
-  
+
+  // Set up drag and drop for tabs
+  dragDropService.setupTabDragDrop(card, tab.id, null); // null because it's not in a collection yet
+
   return card;
 }
 
@@ -293,93 +420,172 @@ function setupEventListeners() {
       performSearch(searchInput.value);
     }
   });
-  
+
   searchBtn.addEventListener('click', () => {
     performSearch(searchInput.value);
   });
-  
+
   // Sync button
   syncBtn.addEventListener('click', () => {
     syncTabs();
   });
-  
+
   // Settings button
   settingsBtn.addEventListener('click', () => {
     showSettingsModal();
   });
-  
+
   // New collection button
   newCollectionBtn.addEventListener('click', () => {
     showSaveModal([]);
   });
-  
+
+  // Save all tabs button
+  saveAllTabsBtn.addEventListener('click', () => {
+    chrome.tabs.query({}, (tabs) => {
+      showSaveModal(tabs);
+    });
+  });
+
   // New workspace button
   newWorkspaceBtn.addEventListener('click', () => {
     showWorkspaceModal();
   });
-  
+
   // Invite team button
   inviteTeamBtn.addEventListener('click', () => {
     showShareModal(null, true);
   });
-  
+
   // Cancel save button
   cancelSaveBtn.addEventListener('click', () => {
     hideSaveModal();
   });
-  
+
   // Confirm save button
   confirmSaveBtn.addEventListener('click', () => {
     saveCollection();
   });
-  
+
   // Cancel settings button
   cancelSettingsBtn.addEventListener('click', () => {
     hideSettingsModal();
   });
-  
+
   // Save settings button
   saveSettingsBtn.addEventListener('click', () => {
     saveSettings();
   });
-  
+
+  // Export data button
+  exportDataBtn.addEventListener('click', () => {
+    exportData();
+  });
+
+  // Import data button
+  importDataBtn.addEventListener('click', () => {
+    importDataFile.click();
+  });
+
+  // Import data file change
+  importDataFile.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const jsonData = event.target.result;
+          importData(jsonData);
+        } catch (error) {
+          console.error('Error reading file:', error);
+          alert('Error reading file. Please try again.');
+        }
+      };
+
+      reader.readAsText(file);
+    }
+  });
+
   // Add email button
   addEmailBtn.addEventListener('click', () => {
     addEmailToShare();
   });
-  
+
   // Share email input enter key
   shareEmailInput.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') {
       addEmailToShare();
     }
   });
-  
+
   // Cancel share button
   cancelShareBtn.addEventListener('click', () => {
     hideShareModal();
   });
-  
+
   // Confirm share button
   confirmShareBtn.addEventListener('click', () => {
     shareCollection();
   });
-  
+
   // Cancel workspace button
   cancelWorkspaceBtn.addEventListener('click', () => {
     hideWorkspaceModal();
   });
-  
+
   // Confirm workspace button
   confirmWorkspaceBtn.addEventListener('click', () => {
     createWorkspace();
   });
+
+  // Setup workspace items click events
+  const workspaceItems = workspacesList.querySelectorAll('.sidebar-item');
+  workspaceItems.forEach(item => {
+    item.addEventListener('click', () => {
+      // Remove active class from all items
+      workspaceItems.forEach(i => i.classList.remove('active'));
+      // Add active class to clicked item
+      item.classList.add('active');
+      // Set active workspace
+      activeWorkspace = item.dataset.spaceId;
+      // Load collections for this workspace
+      loadCollections();
+    });
+  });
+
+  // Setup drag and drop for collections grid
+  collectionsGrid.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+
+  collectionsGrid.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const collectionId = e.dataTransfer.getData('text/plain');
+    // Handle collection drop (could reorder or move to different workspace)
+    console.log(`Collection ${collectionId} dropped`);
+  });
 }
 
 // Perform search
-function performSearch(query) {
+async function performSearch(query) {
   if (!query) return;
-  
+
+  // First, try to search in our collections and tabs
+  try {
+    const results = await dataService.search(query);
+
+    if (results.collections.length > 0 || results.tabs.length > 0) {
+      // Show search results
+      showSearchResults(results, query);
+      return;
+    }
+  } catch (error) {
+    console.error('Error searching:', error);
+  }
+
+  // If no results or error, search the web
   if (query.startsWith('http') || query.includes('.')) {
     // If the query looks like a URL, navigate to it
     chrome.tabs.create({ url: query.startsWith('http') ? query : `https://${query}` });
@@ -387,40 +593,67 @@ function performSearch(query) {
     // Otherwise, search Google
     chrome.tabs.create({ url: `https://www.google.com/search?q=${encodeURIComponent(query)}` });
   }
-  
+
+  searchInput.value = '';
+}
+
+// Show search results
+function showSearchResults(results, query) {
+  // Implement a search results UI
+  alert(`Found ${results.collections.length} collections and ${results.tabs.length} tabs matching "${query}"`);
+
+  // Clear search input
   searchInput.value = '';
 }
 
 // Show save collection modal
 function showSaveModal(tabs) {
   selectedTabs = tabs;
-  
+
   // Clear previous data
   collectionNameInput.value = '';
   selectedTabsList.innerHTML = '';
-  
+  collectionSpaceSelect.value = activeWorkspace;
+
   // Add selected tabs to the list
   selectedTabs.forEach(tab => {
     const tabElement = document.createElement('div');
     tabElement.className = 'tab-item';
-    
+
     const favicon = document.createElement('img');
     favicon.className = 'tab-favicon';
-    favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
+
+    // Set a default icon first to ensure we always have something
+    favicon.src = getDefaultIconPath();
+
+    // Then try to load the actual favicon if available
+    if (tab.favIconUrl) {
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        favicon.src = tab.favIconUrl;
+      };
+      tempImg.onerror = () => {
+        // Keep the default icon if favicon fails to load
+        favicon.src = getDefaultIconPath();
+      };
+      tempImg.src = tab.favIconUrl;
+    }
+
+    // Fallback in case the above logic fails
     favicon.onerror = () => {
-      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
+      favicon.src = getDefaultIconPath();
     };
-    
+
     const title = document.createElement('div');
     title.className = 'tab-title';
     title.textContent = tab.title;
-    
+
     tabElement.appendChild(favicon);
     tabElement.appendChild(title);
-    
+
     selectedTabsList.appendChild(tabElement);
   });
-  
+
   saveCollectionModal.classList.add('show');
 }
 
@@ -441,23 +674,21 @@ function hideSettingsModal() {
 }
 
 // Show share modal
-function showShareModal(collectionId, isTeamInvite = false) {
-  currentCollectionToShare = collectionId;
+function showShareModal(_, isTeamInvite = false) {
   emailsToShare = [];
   shareEmailInput.value = '';
   shareEmailsList.innerHTML = '';
-  
+
   // Change title for team invite
   const modalTitle = shareModal.querySelector('h3');
   modalTitle.textContent = isTeamInvite ? 'Invite Team Members' : 'Share Collection';
-  
+
   shareModal.classList.add('show');
 }
 
 // Hide share modal
 function hideShareModal() {
   shareModal.classList.remove('show');
-  currentCollectionToShare = null;
   emailsToShare = [];
 }
 
@@ -465,7 +696,7 @@ function hideShareModal() {
 function showWorkspaceModal() {
   workspaceModal.classList.add('show');
   workspaceNameInput.value = '';
-  workspaceColorInput.value = '#4f5bd5';
+  workspaceColorInput.value = '#ff5c8d';
 }
 
 // Hide workspace modal
@@ -476,17 +707,17 @@ function hideWorkspaceModal() {
 // Add email to share list
 function addEmailToShare() {
   const email = shareEmailInput.value.trim();
-  
+
   if (email && isValidEmail(email) && !emailsToShare.includes(email)) {
     emailsToShare.push(email);
-    
+
     const emailElement = document.createElement('div');
     emailElement.className = 'email-item';
-    
+
     const emailText = document.createElement('div');
     emailText.className = 'email-text';
     emailText.textContent = email;
-    
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-email';
     removeBtn.innerHTML = '&times;';
@@ -494,77 +725,97 @@ function addEmailToShare() {
       emailsToShare = emailsToShare.filter(e => e !== email);
       emailElement.remove();
     });
-    
+
     emailElement.appendChild(emailText);
     emailElement.appendChild(removeBtn);
-    
+
     shareEmailsList.appendChild(emailElement);
     shareEmailInput.value = '';
   }
 }
 
 // Save collection
-function saveCollection() {
+async function saveCollection() {
   const name = collectionNameInput.value.trim();
-  
+  const spaceId = collectionSpaceSelect.value;
+
   if (!name) {
     alert('Please enter a collection name');
     return;
   }
-  
-  const collectionId = `collection-${Date.now()}`;
-  
-  const tabs = selectedTabs.map(tab => ({
-    id: tab.id,
-    url: tab.url,
-    title: tab.title,
-    favicon: tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png')
-  }));
-  
-  const collection = {
-    id: collectionId,
-    name,
-    tabs,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    workspace: activeWorkspace
-  };
-  
-  // Save to collections
-  collections[collectionId] = collection;
-  chrome.storage.local.set({ collections }, () => {
-    renderCollections();
-    hideSaveModal();
-    
-    // Send message to background script
-    chrome.runtime.sendMessage({
-      action: 'saveCollection',
-      collection
+
+  try {
+    // Format tabs for storage
+    const tabs = selectedTabs.map(tab => {
+      // Check if favicon is valid
+      let favicon = getDefaultIconPath(); // Default fallback
+
+      if (tab.favIconUrl) {
+        // We'll store the original favicon URL, but we've already handled
+        // displaying the default icon if it fails to load
+        favicon = tab.favIconUrl;
+      }
+
+      return {
+        id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        url: tab.url,
+        title: tab.title,
+        favicon: favicon
+      };
     });
-  });
+
+    // Create collection
+    await dataService.createCollection(name, spaceId, tabs);
+
+    // Reload collections
+    await loadCollections();
+
+    // Hide modal
+    hideSaveModal();
+  } catch (error) {
+    console.error('Error saving collection:', error);
+    alert('Error saving collection. Please try again.');
+  }
 }
 
 // Open collection tabs
-function openCollection(collectionId) {
-  chrome.runtime.sendMessage({
-    action: 'openTabs',
-    collectionId
-  });
+async function openCollection(collectionId) {
+  try {
+    const collection = await dataService.getCollection(collectionId);
+    if (!collection || !collection.tabs || collection.tabs.length === 0) {
+      alert('No tabs in this collection');
+      return;
+    }
+
+    // Open all tabs in the collection
+    collection.tabs.forEach(tab => {
+      chrome.tabs.create({ url: tab.url });
+    });
+  } catch (error) {
+    console.error('Error opening collection:', error);
+    alert('Error opening collection. Please try again.');
+  }
 }
 
 // Save settings
-function saveSettings() {
-  userPreferences = {
-    theme: themeSelect.value,
-    syncEnabled: syncEnabledCheck.checked,
-    autoSaveEnabled: autoSaveEnabledCheck.checked,
-    collaborationEnabled: collaborationEnabledCheck.checked,
-    showRecent: showRecentCheck.checked,
-    showWeather: showWeatherCheck.checked,
-    showNotes: showNotesCheck.checked
-  };
-  
-  chrome.storage.local.set({ userPreferences }, () => {
+async function saveSettings() {
+  try {
+    const updatedPreferences = {
+      theme: themeSelect.value,
+      syncEnabled: syncEnabledCheck.checked,
+      autoSaveEnabled: autoSaveEnabledCheck.checked,
+      collaborationEnabled: collaborationEnabledCheck.checked,
+      showRecent: showRecentCheck.checked,
+      showWeather: showWeatherCheck.checked,
+      showNotes: showNotesCheck.checked
+    };
+
+    // Update settings in database
+    await dataService.updateSettings(updatedPreferences);
+
+    // Update local state
+    userPreferences = updatedPreferences;
+
     // Apply theme
     if (userPreferences.theme === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -578,49 +829,40 @@ function saveSettings() {
         document.documentElement.removeAttribute('data-theme');
       }
     }
-    
-    // Send message to background script
-    chrome.runtime.sendMessage({
-      action: 'updatePreferences',
-      preferences: userPreferences
-    });
-    
+
     hideSettingsModal();
-    
+
     // Refresh collections to update UI (if collaboration setting changed)
-    renderCollections();
-  });
+    await loadCollections();
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    alert('Error saving settings. Please try again.');
+  }
 }
 
 // Create workspace
-function createWorkspace() {
+async function createWorkspace() {
   const name = workspaceNameInput.value.trim();
   const color = workspaceColorInput.value;
-  
+
   if (!name) {
     alert('Please enter a workspace name');
     return;
   }
-  
-  const workspaceId = `workspace-${Date.now()}`;
-  
-  const workspace = {
-    id: workspaceId,
-    name,
-    color
-  };
-  
-  workspaces.push(workspace);
-  
-  // Update UI
-  const workspaceItem = document.createElement('div');
-  workspaceItem.className = 'sidebar-item';
-  workspaceItem.innerHTML = `<span>${name}</span>`;
-  workspaceItem.addEventListener('click', () => setActiveWorkspace(workspaceId));
-  
-  workspacesList.appendChild(workspaceItem);
-  
-  hideWorkspaceModal();
+
+  try {
+    // Create workspace
+    await dataService.createSpace(name, color);
+
+    // Reload spaces
+    await loadSpaces();
+
+    // Hide modal
+    hideWorkspaceModal();
+  } catch (error) {
+    console.error('Error creating workspace:', error);
+    alert('Error creating workspace. Please try again.');
+  }
 }
 
 // Share collection
@@ -629,67 +871,33 @@ function shareCollection() {
     alert('Please add at least one email to share with');
     return;
   }
-  
-  if (currentCollectionToShare) {
-    // Sharing a collection
-    chrome.runtime.sendMessage({
-      action: 'shareCollection',
-      collectionId: currentCollectionToShare,
-      users: emailsToShare
-    });
-  } else {
-    // Inviting team members
-    console.log('Inviting team members:', emailsToShare);
-    
-    // In a real implementation, this would send invitations to join the team
-    // For the demo, we'll just add mock users
-    emailsToShare.forEach(email => {
-      const name = email.split('@')[0];
-      const avatar = name.charAt(0).toUpperCase();
-      
-      const teamMember = {
-        id: `user-${Date.now()}`,
-        name,
-        avatar,
-        isCurrentUser: false
-      };
-      
-      teamMembers.push(teamMember);
-      
-      // Update UI
-      const memberItem = document.createElement('div');
-      memberItem.className = 'sidebar-item';
-      memberItem.innerHTML = `
-        <div class="avatar small">${avatar}</div>
-        <span>${name}</span>
-      `;
-      
-      teamMembersList.appendChild(memberItem);
-    });
-  }
-  
+
+  // For now, just show a message since we don't have a backend for sharing
+  alert(`Sharing is not implemented yet. Would share with: ${emailsToShare.join(', ')}`);
+
   hideShareModal();
 }
 
 // Set active workspace
 function setActiveWorkspace(workspaceId) {
   activeWorkspace = workspaceId;
-  
+
   // Update UI
   const items = workspacesList.querySelectorAll('.sidebar-item');
   items.forEach(item => {
     item.classList.remove('active');
   });
-  
-  const activeItem = Array.from(items).find(item => 
-    item.textContent.trim() === workspaces.find(w => w.id === workspaceId)?.name
-  );
+
+  const activeItem = Array.from(items).find(item => item.dataset.spaceId === workspaceId);
   if (activeItem) {
     activeItem.classList.add('active');
   }
-  
-  // Filter collections by workspace
-  renderCollections();
+
+  // Update collection space select
+  collectionSpaceSelect.value = workspaceId;
+
+  // Load collections for this workspace
+  loadCollections();
 }
 
 // Sync tabs
@@ -698,18 +906,17 @@ function syncTabs() {
     alert('Sync is disabled. Enable it in settings first.');
     return;
   }
-  
+
   // Show syncing animation
   syncBtn.classList.add('syncing');
-  
-  chrome.runtime.sendMessage({
-    action: 'syncTabs'
-  }, () => {
-    // Remove syncing animation after a delay
-    setTimeout(() => {
-      syncBtn.classList.remove('syncing');
-    }, 1000);
-  });
+
+  // For now, just reload tabs
+  loadOpenTabs();
+
+  // Remove syncing animation after a delay
+  setTimeout(() => {
+    syncBtn.classList.remove('syncing');
+  }, 1000);
 }
 
 // Helper function to format date
@@ -722,4 +929,44 @@ function formatDate(timestamp) {
 function isValidEmail(email) {
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
+}
+
+// Helper function to get default icon path
+function getDefaultIconPath() {
+  return chrome.runtime.getURL('app/assets/icons/icon16.png');
+}
+
+// Add export/import functions
+async function exportData() {
+  try {
+    const data = await dataService.exportData();
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+    const exportFileDefaultName = `toby-export-${new Date().toISOString().slice(0, 10)}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  } catch (error) {
+    console.error('Error exporting data:', error);
+    alert('Error exporting data. Please try again.');
+  }
+}
+
+async function importData(jsonData) {
+  try {
+    const data = JSON.parse(jsonData);
+    await dataService.importData(data);
+
+    // Reload everything
+    await loadSpaces();
+    await loadCollections();
+
+    alert('Data imported successfully!');
+  } catch (error) {
+    console.error('Error importing data:', error);
+    alert('Error importing data. Please check the file format and try again.');
+  }
 }

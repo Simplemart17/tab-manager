@@ -1,12 +1,15 @@
-// Popup script for Tab Manager Pro
+// Popup script for Simple Tab Manager
 
 // DOM Elements
 const openTabsList = document.getElementById('open-tabs');
 const collectionsList = document.getElementById('collections-list');
+const workspacesList = document.getElementById('workspaces-list');
 const saveAllTabsBtn = document.getElementById('save-all-tabs-btn');
 const newCollectionBtn = document.getElementById('new-collection-btn');
+const newWorkspaceBtn = document.getElementById('new-workspace-btn');
 const syncBtn = document.getElementById('sync-btn');
 const settingsBtn = document.getElementById('settings-btn');
+const collectionSpaceSelect = document.getElementById('collection-space');
 
 // Modals
 const saveCollectionModal = document.getElementById('save-collection-modal');
@@ -40,6 +43,12 @@ let collections = {};
 let selectedTabs = [];
 let emailsToShare = [];
 let currentCollectionToShare = null;
+let activeWorkspace = 'personal';
+let workspaces = [
+  { id: 'personal', name: 'Personal', color: '#ff5c8d' },
+  { id: 'work', name: 'Work', color: '#4caf50' },
+  { id: 'research', name: 'Research', color: '#ff9800' }
+];
 let userPreferences = {
   theme: 'light',
   syncEnabled: true,
@@ -56,7 +65,7 @@ const handleChromeError = (error) => {
     errorDiv.className = 'error-message';
     errorDiv.textContent = 'Extension context has been invalidated. Please refresh the page.';
     document.body.insertBefore(errorDiv, document.body.firstChild);
-    
+
     // Disable all interactive elements
     document.querySelectorAll('button').forEach(btn => btn.disabled = true);
     document.querySelectorAll('input').forEach(input => input.disabled = true);
@@ -87,7 +96,7 @@ async function loadUserPreferences() {
     const result = await safeApiCall(() => chrome.storage.local.get(['userPreferences']));
     if (result.userPreferences) {
       userPreferences = result.userPreferences;
-      
+
       // Apply theme
       if (userPreferences.theme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -97,7 +106,7 @@ async function loadUserPreferences() {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
       }
-      
+
       // Update form elements
       themeSelect.value = userPreferences.theme;
       syncEnabledCheck.checked = userPreferences.syncEnabled;
@@ -136,7 +145,7 @@ async function loadOpenTabs() {
 // Render open tabs list
 function renderOpenTabs() {
   openTabsList.innerHTML = '';
-  
+
   currentTabs.forEach(tab => {
     const tabElement = createTabElement(tab);
     openTabsList.appendChild(tabElement);
@@ -148,21 +157,21 @@ function createTabElement(tab) {
   const tabElement = document.createElement('div');
   tabElement.className = 'tab-item';
   tabElement.dataset.tabId = tab.id;
-  
+
   const favicon = document.createElement('img');
   favicon.className = 'tab-favicon';
   favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
   favicon.onerror = () => {
     favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
   };
-  
+
   const title = document.createElement('div');
   title.className = 'tab-title';
   title.textContent = tab.title;
-  
+
   const actions = document.createElement('div');
   actions.className = 'tab-actions';
-  
+
   const saveBtn = document.createElement('button');
   saveBtn.className = 'tab-btn';
   saveBtn.innerHTML = `
@@ -177,7 +186,7 @@ function createTabElement(tab) {
     e.stopPropagation();
     showSaveModal([tab]);
   });
-  
+
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-btn';
   closeBtn.innerHTML = `
@@ -192,26 +201,26 @@ function createTabElement(tab) {
     chrome.tabs.remove(tab.id);
     tabElement.remove();
   });
-  
+
   actions.appendChild(saveBtn);
   actions.appendChild(closeBtn);
-  
+
   tabElement.appendChild(favicon);
   tabElement.appendChild(title);
   tabElement.appendChild(actions);
-  
+
   tabElement.addEventListener('click', () => {
     chrome.tabs.update(tab.id, { active: true });
     chrome.windows.update(tab.windowId, { focused: true });
   });
-  
+
   return tabElement;
 }
 
 // Render collections
 function renderCollections() {
   collectionsList.innerHTML = '';
-  
+
   Object.values(collections).forEach(collection => {
     const collectionElement = createCollectionElement(collection);
     collectionsList.appendChild(collectionElement);
@@ -223,42 +232,46 @@ function createCollectionElement(collection) {
   const collectionElement = document.createElement('div');
   collectionElement.className = 'collection-item';
   collectionElement.dataset.collectionId = collection.id;
-  
+
+  // Find the workspace color
+  const workspace = workspaces.find(w => w.id === collection.workspace) || workspaces[0];
+  collectionElement.style.borderLeft = `4px solid ${workspace.color}`;
+
   const header = document.createElement('div');
   header.className = 'collection-header';
-  
+
   const title = document.createElement('div');
   title.className = 'collection-title';
   title.textContent = collection.name;
-  
+
   const tabCount = document.createElement('div');
   tabCount.className = 'collection-tab-count';
   tabCount.textContent = `${collection.tabs.length} tab${collection.tabs.length !== 1 ? 's' : ''}`;
-  
+
   header.appendChild(title);
   header.appendChild(tabCount);
-  
+
   const tabs = document.createElement('div');
   tabs.className = 'collection-tabs';
-  
+
   // Show up to 5 tab favicons
   collection.tabs.slice(0, 5).forEach(tab => {
     const tabIcon = document.createElement('div');
     tabIcon.className = 'collection-tab';
-    
+
     const favicon = document.createElement('img');
     favicon.src = tab.favicon || chrome.runtime.getURL('assets/icons/icon16.png');
     favicon.onerror = () => {
       favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
     };
-    
+
     tabIcon.appendChild(favicon);
     tabs.appendChild(tabIcon);
   });
-  
+
   const actions = document.createElement('div');
   actions.className = 'collection-actions';
-  
+
   const openBtn = document.createElement('button');
   openBtn.className = 'collection-btn';
   openBtn.textContent = 'Open All';
@@ -266,7 +279,7 @@ function createCollectionElement(collection) {
     e.stopPropagation();
     openCollection(collection.id);
   });
-  
+
   const shareBtn = document.createElement('button');
   shareBtn.className = 'collection-btn';
   shareBtn.textContent = 'Share';
@@ -274,7 +287,7 @@ function createCollectionElement(collection) {
     e.stopPropagation();
     showShareModal(collection.id);
   });
-  
+
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'collection-btn';
   deleteBtn.textContent = 'Delete';
@@ -282,113 +295,134 @@ function createCollectionElement(collection) {
     e.stopPropagation();
     deleteCollection(collection.id);
   });
-  
+
   actions.appendChild(openBtn);
-  
+
   // Only show share button if collaboration is enabled
   if (userPreferences.collaborationEnabled) {
     actions.appendChild(shareBtn);
   }
-  
+
   actions.appendChild(deleteBtn);
-  
+
   collectionElement.appendChild(header);
   collectionElement.appendChild(tabs);
   collectionElement.appendChild(actions);
-  
+
   return collectionElement;
 }
 
 // Set up event listeners
-function setupEventListeners() {  
+function setupEventListeners() {
   // New collection button
   newCollectionBtn.addEventListener('click', () => {
     showSaveModal([]);
   });
-  
+
+  // New workspace button
+  newWorkspaceBtn.addEventListener('click', () => {
+    showWorkspaceModal();
+  });
+
   // Sync button
   syncBtn.addEventListener('click', () => {
     syncTabs();
   });
-  
+
   // Settings button
   settingsBtn.addEventListener('click', () => {
     showSettingsModal();
   });
-  
+
   // Cancel save button
   cancelSaveBtn.addEventListener('click', () => {
     hideSaveModal();
   });
-  
+
   // Confirm save button
   confirmSaveBtn.addEventListener('click', () => {
     saveCollection();
   });
-  
+
   // Cancel settings button
   cancelSettingsBtn.addEventListener('click', () => {
     hideSettingsModal();
   });
-  
+
   // Save settings button
   saveSettingsBtn.addEventListener('click', () => {
     saveSettings();
   });
-  
+
   // Add email button
   addEmailBtn.addEventListener('click', () => {
     addEmailToShare();
   });
-  
+
   // Share email input enter key
   shareEmailInput.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') {
       addEmailToShare();
     }
   });
-  
+
   // Cancel share button
   cancelShareBtn.addEventListener('click', () => {
     hideShareModal();
   });
-  
+
   // Confirm share button
   confirmShareBtn.addEventListener('click', () => {
     shareCollection();
+  });
+
+  // Setup workspace items click events
+  const spaceItems = workspacesList.querySelectorAll('.space-item');
+  spaceItems.forEach(item => {
+    item.addEventListener('click', () => {
+      // Remove active class from all items
+      spaceItems.forEach(i => i.classList.remove('active'));
+      // Add active class to clicked item
+      item.classList.add('active');
+      // Set active workspace
+      activeWorkspace = item.dataset.spaceId;
+      // Filter collections by workspace
+      filterCollectionsByWorkspace(activeWorkspace);
+    });
   });
 }
 
 // Show save collection modal
 function showSaveModal(tabs) {
   selectedTabs = tabs;
-  
+
   // Clear previous data
   collectionNameInput.value = '';
   selectedTabsList.innerHTML = '';
-  
+  collectionSpaceSelect.value = activeWorkspace;
+
   // Add selected tabs to the list
   selectedTabs.forEach(tab => {
     const tabElement = document.createElement('div');
     tabElement.className = 'tab-item';
-    
+
     const favicon = document.createElement('img');
     favicon.className = 'tab-favicon';
     favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
     favicon.onerror = () => {
       favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
     };
-    
+
     const title = document.createElement('div');
     title.className = 'tab-title';
     title.textContent = tab.title;
-    
+
     tabElement.appendChild(favicon);
     tabElement.appendChild(title);
-    
+
     selectedTabsList.appendChild(tabElement);
   });
-  
+
   saveCollectionModal.classList.add('show');
 }
 
@@ -414,7 +448,7 @@ function showShareModal(collectionId) {
   emailsToShare = [];
   shareEmailInput.value = '';
   shareEmailsList.innerHTML = '';
-  
+
   shareModal.classList.add('show');
 }
 
@@ -428,17 +462,17 @@ function hideShareModal() {
 // Add email to share list
 function addEmailToShare() {
   const email = shareEmailInput.value.trim();
-  
+
   if (email && isValidEmail(email) && !emailsToShare.includes(email)) {
     emailsToShare.push(email);
-    
+
     const emailElement = document.createElement('div');
     emailElement.className = 'email-item';
-    
+
     const emailText = document.createElement('div');
     emailText.className = 'email-text';
     emailText.textContent = email;
-    
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-email';
     removeBtn.innerHTML = '&times;';
@@ -446,10 +480,10 @@ function addEmailToShare() {
       emailsToShare = emailsToShare.filter(e => e !== email);
       emailElement.remove();
     });
-    
+
     emailElement.appendChild(emailText);
     emailElement.appendChild(removeBtn);
-    
+
     shareEmailsList.appendChild(emailElement);
     shareEmailInput.value = '';
   }
@@ -458,35 +492,37 @@ function addEmailToShare() {
 // Save collection
 function saveCollection() {
   const name = collectionNameInput.value.trim();
-  
+  const space = collectionSpaceSelect.value;
+
   if (!name) {
     alert('Please enter a collection name');
     return;
   }
-  
+
   const collectionId = `collection-${Date.now()}`;
-  
+
   const tabs = selectedTabs.map(tab => ({
     id: tab.id,
     url: tab.url,
     title: tab.title,
     favicon: tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png')
   }));
-  
+
   const collection = {
     id: collectionId,
     name,
     tabs,
     createdAt: Date.now(),
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    workspace: space
   };
-  
+
   // Save to collections
   collections[collectionId] = collection;
   chrome.storage.local.set({ collections }, () => {
-    renderCollections();
+    filterCollectionsByWorkspace(activeWorkspace);
     hideSaveModal();
-    
+
     // Send message to background script
     chrome.runtime.sendMessage({
       action: 'saveCollection',
@@ -521,7 +557,7 @@ function saveSettings() {
     autoSaveEnabled: autoSaveEnabledCheck.checked,
     collaborationEnabled: collaborationEnabledCheck.checked
   };
-  
+
   chrome.storage.local.set({ userPreferences }, () => {
     // Apply theme
     if (userPreferences.theme === 'dark') {
@@ -536,15 +572,15 @@ function saveSettings() {
         document.documentElement.removeAttribute('data-theme');
       }
     }
-    
+
     // Send message to background script
     chrome.runtime.sendMessage({
       action: 'updatePreferences',
       preferences: userPreferences
     });
-    
+
     hideSettingsModal();
-    
+
     // Refresh collections to update UI (if collaboration setting changed)
     renderCollections();
   });
@@ -556,18 +592,18 @@ function shareCollection() {
     alert('Please add at least one email to share with');
     return;
   }
-  
+
   if (!currentCollectionToShare) {
     alert('Invalid collection to share');
     return;
   }
-  
+
   chrome.runtime.sendMessage({
     action: 'shareCollection',
     collectionId: currentCollectionToShare,
     users: emailsToShare
   });
-  
+
   hideShareModal();
 }
 
@@ -577,10 +613,10 @@ function syncTabs() {
     alert('Sync is disabled. Enable it in settings first.');
     return;
   }
-  
+
   // Show syncing animation
   syncBtn.classList.add('syncing');
-  
+
   chrome.runtime.sendMessage({
     action: 'syncTabs'
   }, () => {
@@ -595,4 +631,22 @@ function syncTabs() {
 function isValidEmail(email) {
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
+}
+
+// Filter collections by workspace
+function filterCollectionsByWorkspace(workspaceId) {
+  collectionsList.innerHTML = '';
+
+  Object.values(collections)
+    .filter(collection => !workspaceId || collection.workspace === workspaceId)
+    .forEach(collection => {
+      const collectionElement = createCollectionElement(collection);
+      collectionsList.appendChild(collectionElement);
+    });
+}
+
+// Show workspace modal
+function showWorkspaceModal() {
+  // Implement workspace modal
+  alert('Create new workspace feature coming soon!');
 }
