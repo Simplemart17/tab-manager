@@ -6,6 +6,7 @@ class DragDropService {
     this.draggedItem = null;
     this.draggedItemType = null;
     this.sourceContainerId = null;
+    this.dragFeedbackElement = null;
   }
 
   // Set up drag and drop for a tab element
@@ -86,6 +87,14 @@ class DragDropService {
 
     // Add a class to the element being dragged
     e.target.classList.add('dragging');
+    
+    // Create a visual drag feedback
+    this.createDragFeedback(e, 'tab');
+    
+    // Set a custom drag image if supported
+    if (e.dataTransfer.setDragImage && this.dragFeedbackElement) {
+      e.dataTransfer.setDragImage(this.dragFeedbackElement, 15, 15);
+    }
   }
 
   // Handle drag start for collections
@@ -102,6 +111,14 @@ class DragDropService {
 
     // Add a class to the element being dragged
     e.target.classList.add('dragging');
+    
+    // Create a visual drag feedback
+    this.createDragFeedback(e, 'collection');
+    
+    // Set a custom drag image if supported
+    if (e.dataTransfer.setDragImage && this.dragFeedbackElement) {
+      e.dataTransfer.setDragImage(this.dragFeedbackElement, 20, 20);
+    }
   }
 
   // Handle drag over
@@ -114,16 +131,38 @@ class DragDropService {
   // Handle drag enter
   handleDragEnter(e, element) {
     element.classList.add('drag-over');
+    
+    // Add visual indication based on compatibility
+    if (this.draggedItemType === 'tab') {
+      element.classList.add('can-drop-tab');
+    } else if (this.draggedItemType === 'collection') {
+      element.classList.add('can-drop-collection');
+    }
   }
 
   // Handle drag leave
   handleDragLeave(e, element) {
     element.classList.remove('drag-over');
+    element.classList.remove('can-drop-tab');
+    element.classList.remove('can-drop-collection');
   }
 
   // Handle drag end
   handleDragEnd(e) {
     e.target.classList.remove('dragging');
+
+    // Remove any drag feedback element
+    if (this.dragFeedbackElement && this.dragFeedbackElement.parentNode) {
+      document.body.removeChild(this.dragFeedbackElement);
+      this.dragFeedbackElement = null;
+    }
+
+    // Remove any drag-over classes from all elements
+    document.querySelectorAll('.drag-over, .can-drop-tab, .can-drop-collection').forEach(el => {
+      el.classList.remove('drag-over');
+      el.classList.remove('can-drop-tab');
+      el.classList.remove('can-drop-collection');
+    });
 
     // Reset drag state
     this.draggedItem = null;
@@ -135,8 +174,10 @@ class DragDropService {
   async handleCollectionDrop(e, targetCollectionId) {
     e.preventDefault();
 
-    // Remove drag-over class
+    // Remove drag-over classes
     e.currentTarget.classList.remove('drag-over');
+    e.currentTarget.classList.remove('can-drop-tab');
+    e.currentTarget.classList.remove('can-drop-collection');
 
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
@@ -145,6 +186,9 @@ class DragDropService {
         // Get source and target collection names for the notification
         const sourceCollection = await dataService.getCollection(data.sourceId);
         const targetCollection = await dataService.getCollection(targetCollectionId);
+
+        // Add visual feedback for the drop
+        this.showDropFeedback(e.currentTarget, 'success');
 
         // Move tab from one collection to another
         await dataService.moveTabBetweenCollections(data.sourceId, targetCollectionId, data.id);
@@ -163,6 +207,7 @@ class DragDropService {
       }
     } catch (error) {
       console.error('Error handling collection drop:', error);
+      this.showDropFeedback(e.currentTarget, 'error');
     }
   }
 
@@ -192,6 +237,67 @@ class DragDropService {
   dispatchDataChangeEvent() {
     const event = new CustomEvent('toby-data-change');
     document.dispatchEvent(event);
+  }
+  
+  /**
+   * Create a visual feedback element for dragging
+   * @param {DragEvent} e - The drag event
+   * @param {string} type - The type of element being dragged ('tab' or 'collection')
+   */
+  createDragFeedback(e, type) {
+    // Remove any existing feedback element
+    if (this.dragFeedbackElement && this.dragFeedbackElement.parentNode) {
+      document.body.removeChild(this.dragFeedbackElement);
+    }
+    
+    // Create a new feedback element
+    this.dragFeedbackElement = document.createElement('div');
+    this.dragFeedbackElement.className = `drag-feedback drag-feedback-${type}`;
+    
+    // Add content based on type
+    if (type === 'tab') {
+      const title = e.target.querySelector('.tab-title')?.textContent || 'Tab';
+      const favicon = e.target.querySelector('.tab-favicon')?.cloneNode(true) || '';
+      
+      if (favicon) {
+        this.dragFeedbackElement.appendChild(favicon);
+      }
+      
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = title.length > 20 ? title.substring(0, 20) + '...' : title;
+      this.dragFeedbackElement.appendChild(titleSpan);
+    } else if (type === 'collection') {
+      const title = e.target.querySelector('.collection-name')?.textContent || 'Collection';
+      
+      const icon = document.createElement('div');
+      icon.className = 'collection-icon';
+      this.dragFeedbackElement.appendChild(icon);
+      
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = title.length > 15 ? title.substring(0, 15) + '...' : title;
+      this.dragFeedbackElement.appendChild(titleSpan);
+    }
+    
+    // Add to document but make it invisible
+    this.dragFeedbackElement.style.position = 'absolute';
+    this.dragFeedbackElement.style.top = '-1000px';
+    this.dragFeedbackElement.style.left = '-1000px';
+    document.body.appendChild(this.dragFeedbackElement);
+  }
+  
+  /**
+   * Show visual feedback after a drop operation
+   * @param {HTMLElement} element - The element where the drop occurred
+   * @param {string} status - The status of the drop ('success' or 'error')
+   */
+  showDropFeedback(element, status) {
+    // Add appropriate class
+    element.classList.add(`drop-${status}`);
+    
+    // Remove class after animation completes
+    setTimeout(() => {
+      element.classList.remove(`drop-${status}`);
+    }, 800);
   }
 }
 

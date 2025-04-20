@@ -1,12 +1,18 @@
 // New Tab script for Toby Tab Manager
 import dataService from '../services/data.js';
 import dragDropService from '../services/dragdrop.js';
+import searchService from '../services/search.js';
+import searchFilters from '../components/search-filters.js';
 
 // DOM Elements
 const collectionsList = document.getElementById('collections-list');
 const tabsContainer = document.getElementById('tabs-container');
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
+const searchFiltersContainer = document.createElement('div');
+searchFiltersContainer.className = 'search-filters-container';
+const searchContainer = document.querySelector('.search-container');
+searchContainer.appendChild(searchFiltersContainer);
 const syncBtn = document.getElementById('sync-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const saveAllTabsBtn = document.getElementById('save-all-tabs-btn');
@@ -66,6 +72,8 @@ let userPreferences = {
   theme: 'light',
   autoSaveEnabled: true
 };
+let isSearchActive = false;
+let searchResults = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -97,6 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup event listeners
     setupEventListeners();
+    
+    // Initialize search filters
+    await searchFilters.init(searchFiltersContainer, searchInput, handleSearchFilterChange);
 
     // Listen for data changes from drag and drop operations
     document.addEventListener('toby-data-change', async () => {
@@ -211,6 +222,12 @@ function updateCollectionSpaceSelect(spaces) {
 // Load collections
 async function loadCollections() {
   try {
+    // If search is active, show search results instead
+    if (isSearchActive) {
+      renderSearchResults();
+      return;
+    }
+    
     // Filter collections by active workspace
     const collections = await dataService.getCollectionsBySpace(activeWorkspace);
     renderCollections(collections);
@@ -549,13 +566,29 @@ function setupEventListeners() {
   // Search
   searchInput.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') {
-      performSearch(searchInput.value);
+      searchTabsAndCollections(searchInput.value);
     }
   });
 
   searchBtn.addEventListener('click', () => {
-    performSearch(searchInput.value);
+    searchTabsAndCollections(searchInput.value);
   });
+  
+  // Handle search input changes (debounced)
+  let searchTimeout;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      if (isSearchActive || searchInput.value.trim()) {
+        searchTabsAndCollections(searchInput.value);
+      }
+    }, 300);
+  });
+  
+  // Handle search filter changes
+  function handleSearchFilterChange(searchData) {
+    searchTabsAndCollections(searchData.query);
+  }
 
   // Sync button
   syncBtn.addEventListener('click', () => {
@@ -687,42 +720,145 @@ function setupEventListeners() {
   });
 }
 
-// Perform search
-async function performSearch(query) {
-  if (!query) return;
+// Search tabs and collections
+async function searchTabsAndCollections(query) {
+  if (!query.trim() && Object.keys(searchFilters.getActiveFilters().filters).length === 0) {
+    // If search is empty and no filters are active, exit search mode
+    isSearchActive = false;
+    loadCollections();
+    return;
+  }
 
   // First, try to search in our collections and tabs
   try {
-    const results = await dataService.search(query);
-
-    if (results.collections.length > 0 || results.tabs.length > 0) {
-      // Show search results
-      showSearchResults(results, query);
-      return;
-    }
+    // Use the new search service with current filters
+    isSearchActive = true;
+    const { filters } = searchFilters.getActiveFilters();
+    searchResults = await searchService.searchTabs(query, filters);
+    
+    // Display search results
+    renderSearchResults();
+    return;
   } catch (error) {
-    console.error('Error searching:', error);
+    console.error('Error searching tabs and collections:', error);
   }
 
-  // If no results or error, search the web
-  if (query.startsWith('http') || query.includes('.')) {
-    // If the query looks like a URL, navigate to it
-    chrome.tabs.create({ url: query.startsWith('http') ? query : `https://${query}` });
-  } else {
-    // Otherwise, search Google
-    chrome.tabs.create({ url: `https://www.google.com/search?q=${encodeURIComponent(query)}` });
+  // If no results found and we have a query (not just filters), search the web
+  if (query.trim()) {
+    searchWeb(query);
   }
-
-  searchInput.value = '';
 }
 
-// Show search results
-function showSearchResults(results, query) {
-  // Implement a search results UI
-  alert(`Found ${results.collections.length} collections and ${results.tabs.length} tabs matching "${query}"`);
+// Search the web
+function searchWeb(query) {
+  // Open a new tab with the search query
+  chrome.tabs.create({ url: `https://www.google.com/search?q=${encodeURIComponent(query)}` });
+}
 
-  // Clear search input
-  searchInput.value = '';
+// Show search results (legacy function, now using renderSearchResults)
+function showSearchResults(results, query) {
+  // Convert old format to new format
+  searchResults = [];
+  
+  // Process collections
+  results.collections.forEach(collection => {
+    collection.tabs.forEach(tab => {
+      searchResults.push({
+        collection: collection,
+        tab: tab
+      });
+    });
+  });
+  
+  // Process individual tabs
+  results.tabs.forEach(tab => {
+    const collection = tab.collectionId ? 
+      { id: tab.collectionId, name: 'Unknown Collection' } : 
+      { id: 'uncategorized', name: 'Uncategorized' };
+      
+    searchResults.push({
+      collection: collection,
+      tab: tab
+    });
+  });
+  
+  // Render the results
+  isSearchActive = true;
+  renderSearchResults();
+}
+
+// Render search results
+function renderSearchResults() {
+  // Clear collections list
+  collectionsList.innerHTML = '';
+  
+  // Create search results header
+  const searchHeader = document.createElement('div');
+  searchHeader.className = 'search-results-header';
+  searchHeader.innerHTML = `
+    <h2>Search Results</h2>
+    <span class="result-count">${searchResults.length} results</span>
+    <button class="clear-search-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+      Clear Search
+    </button>
+  `;
+  
+  // Add clear search button event
+  searchHeader.querySelector('.clear-search-btn').addEventListener('click', () => {
+    searchInput.value = '';
+    searchFilters.clearFilters();
+    isSearchActive = false;
+    loadCollections();
+  });
+  
+  collectionsList.appendChild(searchHeader);
+  
+  // Group results by collection
+  const resultsByCollection = {};
+  
+  searchResults.forEach(result => {
+    const collectionId = result.collection.id;
+    if (!resultsByCollection[collectionId]) {
+      resultsByCollection[collectionId] = {
+        collection: result.collection,
+        tabs: []
+      };
+    }
+    resultsByCollection[collectionId].tabs.push(result.tab);
+  });
+  
+  // Create a collection card for each group
+  Object.values(resultsByCollection).forEach(group => {
+    const collectionCard = createCollectionGroup({
+      id: group.collection.id,
+      name: group.collection.name,
+      tabs: group.tabs,
+      spaceId: group.collection.spaceId
+    });
+    
+    collectionsList.appendChild(collectionCard);
+  });
+  
+  // If no results, show empty state
+  if (searchResults.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-search-results';
+    emptyState.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        <line x1="8" y1="11" x2="14" y2="11"></line>
+      </svg>
+      <h3>No results found</h3>
+      <p>Try adjusting your search or filters</p>
+    `;
+    
+    collectionsList.appendChild(emptyState);
+  }
 }
 
 // Show save collection modal
