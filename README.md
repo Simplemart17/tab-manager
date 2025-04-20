@@ -1,19 +1,38 @@
-# Tab Manager Pro
+# Tab Manager
 
-A powerful Chrome extension for tab management with premium features like cloud sync and team collaboration.
+A Chrome extension for efficient tab management with a clean, modern interface.
 
 ## Features
 
 - **Tab Organization**: Save and organize your browser tabs into collections
-- **Cloud Sync**: Sync your tabs and collections across devices
-- **Team Collaboration**: Share tab collections with your team
-- **Workspaces**: Organize collections into different workspaces
-- **Session Management**: Save and restore entire browsing sessions
+- **Workspaces (Spaces)**: Organize collections into different workspaces with custom colors
 - **Beautiful New Tab Page**: Replace Chrome's new tab with a productivity dashboard
-- **Search**: Quickly find tabs, collections, or search the web
 - **Dark Mode**: Choose between light, dark, or system theme
-- **Notes**: Add notes to collections (coming soon)
+- **Search**: Quickly find tabs, collections, or search the web
 - **Drag & Drop**: Easily organize tabs with drag and drop
+- **Export/Import**: Backup and restore your tab collections
+
+## Technical Details
+
+### Core Components
+
+- **Popup Interface**: Quick access to tabs and collections from the toolbar
+- **New Tab Dashboard**: Full-featured management interface
+- **Background Service**: Handles tab events and synchronization
+- **Data Service**: Manages persistent storage of tabs and collections
+
+### User Interface
+
+- Modern, clean design with customizable themes
+- Responsive layout that works across different screen sizes
+- Intuitive drag-and-drop functionality for organizing tabs
+- Modal dialogs for creating and editing collections and workspaces
+
+### Data Management
+
+- Local storage for tabs, collections, and user preferences
+- Efficient data structure for quick access and updates
+- Import/export functionality for data backup
 
 ## Installation
 
@@ -21,7 +40,7 @@ A powerful Chrome extension for tab management with premium features like cloud 
 
 1. Clone this repository:
 ```
-git clone https://github.com/yourusername/tab-manager-pro.git
+git clone https://github.com/yourusername/tab-manager.git
 ```
 
 2. Open Chrome and navigate to `chrome://extensions/`
@@ -36,18 +55,22 @@ git clone https://github.com/yourusername/tab-manager-pro.git
 
 - Click on the extension icon in your toolbar to access the popup interface
 - Navigate to a new tab to see the full dashboard
-- Create collections by clicking "Save All" or "New Collection"
-- Share collections with team members using the "Share" button
+- Create collections by clicking "New Collection"
+- Organize collections into spaces using the sidebar
 - Configure settings by clicking the gear icon
 
-## Premium Features (All Included)
+## Future Enhancements
 
-- **Cloud Sync**: Keep your tabs synchronized across all your devices
-- **Team Collaboration**: Share tab collections with your team
-- **Unlimited Collections**: No limits on the number of collections you can create
-- **Workspaces**: Organize your work into separate workspaces
-- **Priority Support**: Get help when you need it
+- **Tab Statistics**: Add usage analytics to track tab habits
+- **Keyboard Shortcuts**: Expand keyboard navigation for power users
+- **Tab Groups Integration**: Support for Chrome's native tab groups
+- **Notes & Tags**: Add notes and tags to collections for better organization
+- **Improved Drag & Drop**: Enhanced UI for drag and drop operations
+- **Browser Sync**: Optional sync across browsers using a cloud service
+- **Performance Optimization**: Improve loading times for large collections
+- **Extension Backup**: Cloud backup option for extension data
+- **Custom Themes**: Allow users to create and share custom themes
 
 ## License
 
-MIT 
+MIT
