@@ -636,27 +636,7 @@ function setupEventListeners() {
     closeTabsPane();
   });
 
-  // Add email button
-  addEmailBtn.addEventListener('click', () => {
-    addEmailToShare();
-  });
 
-  // Share email input enter key
-  shareEmailInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
-      addEmailToShare();
-    }
-  });
-
-  // Cancel share button
-  cancelShareBtn.addEventListener('click', () => {
-    hideShareModal();
-  });
-
-  // Confirm share button
-  confirmShareBtn.addEventListener('click', () => {
-    shareCollection();
-  });
 
   // Cancel workspace button
   cancelWorkspaceBtn.addEventListener('click', () => {
@@ -693,7 +673,7 @@ function setupEventListeners() {
     e.preventDefault();
     const collectionId = e.dataTransfer.getData('text/plain');
     // Handle collection drop (could reorder or move to different workspace)
-    console.log(`Collection ${collectionId} dropped`);
+    // Collection dropped
   });
 }
 

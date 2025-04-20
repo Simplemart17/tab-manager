@@ -30,8 +30,7 @@ let syncedTabs = {};
 let userPreferences = {
   theme: 'light',
   syncEnabled: true,
-  autoSaveEnabled: true,
-  collaborationEnabled: true
+  autoSaveEnabled: true
 };
 
 // Initialize extension
@@ -159,12 +158,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }).catch(handleError);
         return true;
         
-      case 'shareCollection':
-        safeApiCall(async () => {
-          await shareCollection(request.collectionId, request.users);
-          sendResponse({ success: true });
-        }).catch(handleError);
-        return true;
+
     }
   } catch (error) {
     handleError(error);
@@ -247,7 +241,6 @@ function closeTabsInCollection(tabIds) {
 function syncTabs() {
   // This would connect to a cloud service
   // For this implementation, we'll mock the sync
-  console.log('Syncing tabs to cloud...');
   
   // In a real implementation, this would send data to a server
   // and handle received updates from other devices/team members
@@ -256,16 +249,4 @@ function syncTabs() {
 function updateUserPreferences(preferences) {
   userPreferences = { ...userPreferences, ...preferences };
   chrome.storage.local.set({ userPreferences });
-}
-
-function shareCollection(collectionId, users) {
-  // In a real implementation, this would send sharing invitations
-  console.log(`Sharing collection ${collectionId} with users:`, users);
-  
-  // Mock implementation - mark collection as shared
-  if (collections[collectionId]) {
-    collections[collectionId].shared = true;
-    collections[collectionId].sharedWith = users;
-    chrome.storage.local.set({ collections });
-  }
 }

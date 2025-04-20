@@ -14,7 +14,6 @@ const collectionSpaceSelect = document.getElementById('collection-space');
 // Modals
 const saveCollectionModal = document.getElementById('save-collection-modal');
 const settingsModal = document.getElementById('settings-modal');
-const shareModal = document.getElementById('share-modal');
 
 // Save Collection Modal
 const collectionNameInput = document.getElementById('collection-name');
@@ -26,23 +25,15 @@ const confirmSaveBtn = document.getElementById('confirm-save');
 const themeSelect = document.getElementById('theme-select');
 const syncEnabledCheck = document.getElementById('sync-enabled');
 const autoSaveEnabledCheck = document.getElementById('auto-save-enabled');
-const collaborationEnabledCheck = document.getElementById('collaboration-enabled');
 const cancelSettingsBtn = document.getElementById('cancel-settings');
 const saveSettingsBtn = document.getElementById('save-settings');
 
-// Share Modal
-const shareEmailInput = document.getElementById('share-email');
-const addEmailBtn = document.getElementById('add-email');
-const shareEmailsList = document.getElementById('share-emails-list');
-const cancelShareBtn = document.getElementById('cancel-share');
-const confirmShareBtn = document.getElementById('confirm-share');
+
 
 // State
 let currentTabs = [];
 let collections = {};
 let selectedTabs = [];
-let emailsToShare = [];
-let currentCollectionToShare = null;
 let activeWorkspace = 'personal';
 let workspaces = [
   { id: 'personal', name: 'Personal', color: '#ff5c8d' },
@@ -52,8 +43,7 @@ let workspaces = [
 let userPreferences = {
   theme: 'light',
   syncEnabled: true,
-  autoSaveEnabled: true,
-  collaborationEnabled: true
+  autoSaveEnabled: true
 };
 
 // Error handling and context validation
@@ -111,7 +101,6 @@ async function loadUserPreferences() {
       themeSelect.value = userPreferences.theme;
       syncEnabledCheck.checked = userPreferences.syncEnabled;
       autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
-      collaborationEnabledCheck.checked = userPreferences.collaborationEnabled;
     }
   } catch (error) {
     handleChromeError(error);
@@ -280,13 +269,7 @@ function createCollectionElement(collection) {
     openCollection(collection.id);
   });
 
-  const shareBtn = document.createElement('button');
-  shareBtn.className = 'collection-btn';
-  shareBtn.textContent = 'Share';
-  shareBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showShareModal(collection.id);
-  });
+
 
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'collection-btn';
@@ -298,10 +281,6 @@ function createCollectionElement(collection) {
 
   actions.appendChild(openBtn);
 
-  // Only show share button if collaboration is enabled
-  if (userPreferences.collaborationEnabled) {
-    actions.appendChild(shareBtn);
-  }
 
   actions.appendChild(deleteBtn);
 
@@ -354,27 +333,7 @@ function setupEventListeners() {
     saveSettings();
   });
 
-  // Add email button
-  addEmailBtn.addEventListener('click', () => {
-    addEmailToShare();
-  });
-
-  // Share email input enter key
-  shareEmailInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
-      addEmailToShare();
-    }
-  });
-
-  // Cancel share button
-  cancelShareBtn.addEventListener('click', () => {
-    hideShareModal();
-  });
-
-  // Confirm share button
-  confirmShareBtn.addEventListener('click', () => {
-    shareCollection();
-  });
+  
 
   // Setup workspace items click events
   const spaceItems = workspacesList.querySelectorAll('.space-item');
@@ -442,52 +401,9 @@ function hideSettingsModal() {
   settingsModal.classList.remove('show');
 }
 
-// Show share modal
-function showShareModal(collectionId) {
-  currentCollectionToShare = collectionId;
-  emailsToShare = [];
-  shareEmailInput.value = '';
-  shareEmailsList.innerHTML = '';
 
-  shareModal.classList.add('show');
-}
 
-// Hide share modal
-function hideShareModal() {
-  shareModal.classList.remove('show');
-  currentCollectionToShare = null;
-  emailsToShare = [];
-}
 
-// Add email to share list
-function addEmailToShare() {
-  const email = shareEmailInput.value.trim();
-
-  if (email && isValidEmail(email) && !emailsToShare.includes(email)) {
-    emailsToShare.push(email);
-
-    const emailElement = document.createElement('div');
-    emailElement.className = 'email-item';
-
-    const emailText = document.createElement('div');
-    emailText.className = 'email-text';
-    emailText.textContent = email;
-
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-email';
-    removeBtn.innerHTML = '&times;';
-    removeBtn.addEventListener('click', () => {
-      emailsToShare = emailsToShare.filter(e => e !== email);
-      emailElement.remove();
-    });
-
-    emailElement.appendChild(emailText);
-    emailElement.appendChild(removeBtn);
-
-    shareEmailsList.appendChild(emailElement);
-    shareEmailInput.value = '';
-  }
-}
 
 // Save collection
 function saveCollection() {
@@ -554,8 +470,7 @@ function saveSettings() {
   userPreferences = {
     theme: themeSelect.value,
     syncEnabled: syncEnabledCheck.checked,
-    autoSaveEnabled: autoSaveEnabledCheck.checked,
-    collaborationEnabled: collaborationEnabledCheck.checked
+    autoSaveEnabled: autoSaveEnabledCheck.checked
   };
 
   chrome.storage.local.set({ userPreferences }, () => {
@@ -586,26 +501,7 @@ function saveSettings() {
   });
 }
 
-// Share collection
-function shareCollection() {
-  if (emailsToShare.length === 0) {
-    alert('Please add at least one email to share with');
-    return;
-  }
 
-  if (!currentCollectionToShare) {
-    alert('Invalid collection to share');
-    return;
-  }
-
-  chrome.runtime.sendMessage({
-    action: 'shareCollection',
-    collectionId: currentCollectionToShare,
-    users: emailsToShare
-  });
-
-  hideShareModal();
-}
 
 // Sync tabs
 function syncTabs() {
@@ -627,11 +523,6 @@ function syncTabs() {
   });
 }
 
-// Helper function to validate email
-function isValidEmail(email) {
-  const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return re.test(email);
-}
 
 // Filter collections by workspace
 function filterCollectionsByWorkspace(workspaceId) {
