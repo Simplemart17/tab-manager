@@ -70,6 +70,16 @@ let userPreferences = {
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // Add click event listener to document to close tabs pane when clicking outside
+    document.addEventListener('click', (e) => {
+      // Check if tabs pane is open
+      if (tabsPane.classList.contains('open')) {
+        // Check if the click is outside the tabs pane and not on the toggle button
+        if (!tabsPane.contains(e.target) && !tabsToggleBtn.contains(e.target)) {
+          closeTabsPane();
+        }
+      }
+    });
     // Initialize data service
     await dataService.init();
 

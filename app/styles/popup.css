@@ -447,3 +447,7 @@ body {
 .setting-item > select {
   margin-top: 15px;
 }
+
+#theme-label {
+  margin-top: 15px;
+}
