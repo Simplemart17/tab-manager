@@ -105,9 +105,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup event listeners
     setupEventListeners();
-    
+
     // Initialize search filters
-    await searchFilters.init(searchFiltersContainer, searchInput, handleSearchFilterChange);
+    await searchFilters.init(searchFiltersContainer, searchInput, (searchData) => {
+      searchTabsAndCollections(searchData.query);
+    });
 
     // Listen for data changes from drag and drop operations
     document.addEventListener('toby-data-change', async () => {
@@ -129,8 +131,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       loadOpenTabs();
     });
 
-    chrome.tabs.onUpdated.addListener(() => {
-      loadOpenTabs();
+    // Only listen for completed tab updates to avoid excessive calls
+    chrome.tabs.onUpdated.addListener((_, changeInfo) => {
+      // Only reload tabs when the tab has completed loading or the URL has changed
+      if (changeInfo.status === 'complete' || changeInfo.url) {
+        loadOpenTabs();
+      }
     });
   } catch (error) {
     console.error('Error initializing app:', error);
@@ -227,7 +233,7 @@ async function loadCollections() {
       renderSearchResults();
       return;
     }
-    
+
     // Filter collections by active workspace
     const collections = await dataService.getCollectionsBySpace(activeWorkspace);
     renderCollections(collections);
@@ -573,7 +579,7 @@ function setupEventListeners() {
   searchBtn.addEventListener('click', () => {
     searchTabsAndCollections(searchInput.value);
   });
-  
+
   // Handle search input changes (debounced)
   let searchTimeout;
   searchInput.addEventListener('input', () => {
@@ -584,11 +590,6 @@ function setupEventListeners() {
       }
     }, 300);
   });
-  
-  // Handle search filter changes
-  function handleSearchFilterChange(searchData) {
-    searchTabsAndCollections(searchData.query);
-  }
 
   // Sync button
   syncBtn.addEventListener('click', () => {
@@ -714,7 +715,6 @@ function setupEventListeners() {
 
   collectionsList.addEventListener('drop', (e) => {
     e.preventDefault();
-    const collectionId = e.dataTransfer.getData('text/plain');
     // Handle collection drop (could reorder or move to different workspace)
     // Collection dropped
   });
@@ -735,7 +735,7 @@ async function searchTabsAndCollections(query) {
     isSearchActive = true;
     const { filters } = searchFilters.getActiveFilters();
     searchResults = await searchService.searchTabs(query, filters);
-    
+
     // Display search results
     renderSearchResults();
     return;
@@ -755,43 +755,11 @@ function searchWeb(query) {
   chrome.tabs.create({ url: `https://www.google.com/search?q=${encodeURIComponent(query)}` });
 }
 
-// Show search results (legacy function, now using renderSearchResults)
-function showSearchResults(results, query) {
-  // Convert old format to new format
-  searchResults = [];
-  
-  // Process collections
-  results.collections.forEach(collection => {
-    collection.tabs.forEach(tab => {
-      searchResults.push({
-        collection: collection,
-        tab: tab
-      });
-    });
-  });
-  
-  // Process individual tabs
-  results.tabs.forEach(tab => {
-    const collection = tab.collectionId ? 
-      { id: tab.collectionId, name: 'Unknown Collection' } : 
-      { id: 'uncategorized', name: 'Uncategorized' };
-      
-    searchResults.push({
-      collection: collection,
-      tab: tab
-    });
-  });
-  
-  // Render the results
-  isSearchActive = true;
-  renderSearchResults();
-}
-
 // Render search results
 function renderSearchResults() {
   // Clear collections list
   collectionsList.innerHTML = '';
-  
+
   // Create search results header
   const searchHeader = document.createElement('div');
   searchHeader.className = 'search-results-header';
@@ -806,7 +774,7 @@ function renderSearchResults() {
       Clear Search
     </button>
   `;
-  
+
   // Add clear search button event
   searchHeader.querySelector('.clear-search-btn').addEventListener('click', () => {
     searchInput.value = '';
@@ -814,12 +782,12 @@ function renderSearchResults() {
     isSearchActive = false;
     loadCollections();
   });
-  
+
   collectionsList.appendChild(searchHeader);
-  
+
   // Group results by collection
   const resultsByCollection = {};
-  
+
   searchResults.forEach(result => {
     const collectionId = result.collection.id;
     if (!resultsByCollection[collectionId]) {
@@ -830,7 +798,7 @@ function renderSearchResults() {
     }
     resultsByCollection[collectionId].tabs.push(result.tab);
   });
-  
+
   // Create a collection card for each group
   Object.values(resultsByCollection).forEach(group => {
     const collectionCard = createCollectionGroup({
@@ -839,10 +807,10 @@ function renderSearchResults() {
       tabs: group.tabs,
       spaceId: group.collection.spaceId
     });
-    
+
     collectionsList.appendChild(collectionCard);
   });
-  
+
   // If no results, show empty state
   if (searchResults.length === 0) {
     const emptyState = document.createElement('div');
@@ -856,7 +824,7 @@ function renderSearchResults() {
       <h3>No results found</h3>
       <p>Try adjusting your search or filters</p>
     `;
-    
+
     collectionsList.appendChild(emptyState);
   }
 }

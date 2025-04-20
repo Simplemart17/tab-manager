@@ -77,11 +77,20 @@ class DragDropService {
     this.draggedItemType = 'tab';
     this.sourceContainerId = collectionId;
 
-    e.dataTransfer.setData('application/json', JSON.stringify({
-      type: 'tab',
-      id: tabId,
-      sourceId: collectionId
-    }));
+    // Set the data for the drag operation
+    try {
+      const data = JSON.stringify({
+        type: 'tab',
+        id: tabId,
+        sourceId: collectionId
+      });
+
+      // Set data in multiple formats to ensure compatibility
+      e.dataTransfer.setData('application/json', data);
+      e.dataTransfer.setData('text/plain', data);
+    } catch (error) {
+      console.error('Error setting drag data:', error);
+    }
 
     e.dataTransfer.effectAllowed = 'move';
 
@@ -102,10 +111,19 @@ class DragDropService {
     this.draggedItem = collectionId;
     this.draggedItemType = 'collection';
 
-    e.dataTransfer.setData('application/json', JSON.stringify({
-      type: 'collection',
-      id: collectionId
-    }));
+    // Set the data for the drag operation
+    try {
+      const data = JSON.stringify({
+        type: 'collection',
+        id: collectionId
+      });
+
+      // Set data in multiple formats to ensure compatibility
+      e.dataTransfer.setData('application/json', data);
+      e.dataTransfer.setData('text/plain', data);
+    } catch (error) {
+      console.error('Error setting drag data:', error);
+    }
 
     e.dataTransfer.effectAllowed = 'move';
 
@@ -180,12 +198,34 @@ class DragDropService {
     e.currentTarget.classList.remove('can-drop-collection');
 
     try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      // Try to get data from different formats
+      let jsonData;
+      try {
+        jsonData = e.dataTransfer.getData('application/json');
+      } catch (err) {
+        // If application/json fails, try text/plain
+        jsonData = e.dataTransfer.getData('text/plain');
+      }
+
+      // If we still don't have data, throw an error
+      if (!jsonData) {
+        throw new Error('No valid data found in drop event');
+      }
+
+      const data = JSON.parse(jsonData);
 
       if (data.type === 'tab' && data.sourceId !== targetCollectionId) {
         // Get source and target collection names for the notification
         const sourceCollection = await dataService.getCollection(data.sourceId);
         const targetCollection = await dataService.getCollection(targetCollectionId);
+
+        if (!sourceCollection) {
+          throw new Error(`Source collection not found: ${data.sourceId}`);
+        }
+
+        if (!targetCollection) {
+          throw new Error(`Target collection not found: ${targetCollectionId}`);
+        }
 
         // Add visual feedback for the drop
         this.showDropFeedback(e.currentTarget, 'success');
@@ -219,9 +259,26 @@ class DragDropService {
     e.currentTarget.classList.remove('drag-over');
 
     try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      // Try to get data from different formats
+      let jsonData;
+      try {
+        jsonData = e.dataTransfer.getData('application/json');
+      } catch (err) {
+        // If application/json fails, try text/plain
+        jsonData = e.dataTransfer.getData('text/plain');
+      }
+
+      // If we still don't have data, throw an error
+      if (!jsonData) {
+        throw new Error('No valid data found in drop event');
+      }
+
+      const data = JSON.parse(jsonData);
 
       if (data.type === 'collection') {
+        // Add visual feedback for the drop
+        this.showDropFeedback(e.currentTarget, 'success');
+
         // Move collection to a different space
         await dataService.updateCollection(data.id, { spaceId: targetSpaceId });
 
@@ -230,6 +287,7 @@ class DragDropService {
       }
     } catch (error) {
       console.error('Error handling space drop:', error);
+      this.showDropFeedback(e.currentTarget, 'error');
     }
   }
 

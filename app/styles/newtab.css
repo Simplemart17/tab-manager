@@ -736,7 +736,7 @@ body {
 }
 
 .filter-toggle-btn {
-  display: flex;
+  display: none; /* hiding it for now */
   align-items: center;
   gap: 6px;
   background: none;

@@ -206,42 +206,6 @@ class DataService {
     return dbService.updateSettings(updatedSettings);
   }
 
-  // Move a tab from one collection to another
-  async moveTabBetweenCollections(sourceCollectionId, targetCollectionId, tabId) {
-    await this.init();
-
-    // Get source and target collections
-    const sourceCollection = await this.getCollection(sourceCollectionId);
-    const targetCollection = await this.getCollection(targetCollectionId);
-
-    if (!sourceCollection || !targetCollection) {
-      throw new Error('Source or target collection not found');
-    }
-
-    // Find the tab in the source collection
-    const tabIndex = sourceCollection.tabs.findIndex(tab => tab.id === tabId);
-    if (tabIndex === -1) {
-      throw new Error('Tab not found in source collection');
-    }
-
-    // Get the tab object
-    const tab = sourceCollection.tabs[tabIndex];
-
-    // Remove the tab from the source collection
-    sourceCollection.tabs.splice(tabIndex, 1);
-    sourceCollection.updatedAt = Date.now();
-
-    // Add the tab to the target collection
-    targetCollection.tabs.push(tab);
-    targetCollection.updatedAt = Date.now();
-
-    // Update both collections in the database
-    await dbService.updateCollection(sourceCollection);
-    await dbService.updateCollection(targetCollection);
-
-    return { sourceCollection, targetCollection, tab };
-  }
-
   // Search method
   async search(query) {
     await this.init();
