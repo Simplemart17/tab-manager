@@ -1,4 +1,4 @@
-// New Tab script for Toby Tab Manager
+// New Tab script for Simple Tab Manager
 import dataService from '../services/data.js';
 import dragDropService from '../services/dragdrop.js';
 import searchService from '../services/search.js';
@@ -112,12 +112,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Listen for data changes from drag and drop operations
-    document.addEventListener('toby-data-change', async () => {
+    document.addEventListener('sim-data-change', async () => {
       await loadCollections();
     });
 
     // Listen for tab moved events
-    document.addEventListener('toby-tab-moved', (e) => {
+    document.addEventListener('sim-tab-moved', (e) => {
       const { sourceCollection, targetCollection } = e.detail;
       showNotification(`Tab moved from "${sourceCollection}" to "${targetCollection}"`);
     });
@@ -1259,7 +1259,7 @@ async function exportData() {
     const dataStr = JSON.stringify(data, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = `toby-export-${new Date().toISOString().slice(0, 10)}.json`;
+    const exportFileDefaultName = `tab-export-${new Date().toISOString().slice(0, 10)}.json`;
 
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -1286,7 +1286,6 @@ async function importData(jsonData) {
 
       showNotification(`Import successful! Added ${stats.spaces} spaces, ${stats.collections} collections, and ${stats.tabs} tabs.`);
     } else if (data.spaces && data.collections) {
-      // This is the standard Toby export format
       await dataService.importData(data);
 
       // Reload everything

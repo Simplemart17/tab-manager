@@ -1,7 +1,7 @@
 // app/services/db.js
 class IndexedDBService {
   constructor() {
-    this.dbName = 'TobyTabManager';
+    this.dbName = 'TabManager';
     this.dbVersion = 1;
     this.db = null;
   }

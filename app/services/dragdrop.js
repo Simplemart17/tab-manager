@@ -237,7 +237,7 @@ class DragDropService {
         this.dispatchDataChangeEvent();
 
         // Dispatch a custom event for the notification
-        const notificationEvent = new CustomEvent('toby-tab-moved', {
+        const notificationEvent = new CustomEvent('sim-tab-moved', {
           detail: {
             sourceCollection: sourceCollection?.name || 'Unknown collection',
             targetCollection: targetCollection?.name || 'Unknown collection'
@@ -293,7 +293,7 @@ class DragDropService {
 
   // Dispatch a custom event when data changes due to drag and drop
   dispatchDataChangeEvent() {
-    const event = new CustomEvent('toby-data-change');
+    const event = new CustomEvent('sim-data-change');
     document.dispatchEvent(event);
   }
 

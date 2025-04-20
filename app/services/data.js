@@ -246,7 +246,6 @@ class DataService {
       // This is the custom format with groups, lists, and cards
       return this._importCustomFormat(data);
     } else if (data.spaces && data.collections) {
-      // This is the standard Toby export format
       // Import spaces
       for (const space of data.spaces) {
         await dbService.addSpace(space);
