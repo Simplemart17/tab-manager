@@ -107,9 +107,7 @@ class IndexedDBService {
       const defaultSettings = {
         id: 'userSettings',
         theme: 'light',
-        syncEnabled: false,
-        autoSaveEnabled: true,
-        collaborationEnabled: false
+        autoSaveEnabled: true
       };
       await this.add('settings', defaultSettings);
       return defaultSettings;
@@ -213,19 +211,19 @@ class IndexedDBService {
     const lowerQuery = query.toLowerCase();
 
     // Search in collection names
-    results.collections = collections.filter(collection => 
+    results.collections = collections.filter(collection =>
       collection.name.toLowerCase().includes(lowerQuery)
     );
 
     // Search in tabs
     collections.forEach(collection => {
       if (!collection.tabs) return;
-      
-      const matchingTabs = collection.tabs.filter(tab => 
-        tab.title.toLowerCase().includes(lowerQuery) || 
+
+      const matchingTabs = collection.tabs.filter(tab =>
+        tab.title.toLowerCase().includes(lowerQuery) ||
         tab.url.toLowerCase().includes(lowerQuery)
       );
-      
+
       if (matchingTabs.length > 0) {
         results.tabs.push(...matchingTabs.map(tab => ({
           ...tab,
@@ -234,7 +232,7 @@ class IndexedDBService {
         })));
       }
     });
-    
+
     return results;
   }
 }

@@ -17,8 +17,7 @@ const collectionSpaceSelect = document.getElementById('collection-space');
 const exportDataBtn = document.getElementById('export-data-btn');
 const importDataBtn = document.getElementById('import-data-btn');
 const importDataFile = document.getElementById('import-data-file');
-const importCustomDataBtn = document.getElementById('import-custom-data-btn');
-const importCustomDataFile = document.getElementById('import-custom-data-file');
+
 
 // Save Collection Modal Elements
 const newCollectionOption = document.getElementById('new-collection-option');
@@ -37,7 +36,6 @@ const tabsToggleIcon = document.querySelector('.tabs-toggle-icon');
 // Modals
 const saveCollectionModal = document.getElementById('save-collection-modal');
 const settingsModal = document.getElementById('settings-modal');
-const shareModal = document.getElementById('share-modal');
 const workspaceModal = document.getElementById('workspace-modal');
 
 // Save Collection Modal
@@ -48,21 +46,11 @@ const confirmSaveBtn = document.getElementById('confirm-save');
 
 // Settings Modal
 const themeSelect = document.getElementById('theme-select');
-const syncEnabledCheck = document.getElementById('sync-enabled');
 const autoSaveEnabledCheck = document.getElementById('auto-save-enabled');
-const collaborationEnabledCheck = document.getElementById('collaboration-enabled');
-const showRecentCheck = document.getElementById('show-recent');
-const showWeatherCheck = document.getElementById('show-weather');
-const showNotesCheck = document.getElementById('show-notes');
 const cancelSettingsBtn = document.getElementById('cancel-settings');
 const saveSettingsBtn = document.getElementById('save-settings');
 
-// Share Modal
-const shareEmailInput = document.getElementById('share-email');
-const addEmailBtn = document.getElementById('add-email');
-const shareEmailsList = document.getElementById('share-emails');
-const cancelShareBtn = document.getElementById('cancel-share');
-const confirmShareBtn = document.getElementById('confirm-share');
+
 
 // Workspace Modal
 const workspaceNameInput = document.getElementById('workspace-name');
@@ -73,16 +61,10 @@ const confirmWorkspaceBtn = document.getElementById('confirm-workspace');
 // State
 let currentTabs = [];
 let selectedTabs = [];
-let emailsToShare = [];
 let activeWorkspace = 'personal';
 let userPreferences = {
   theme: 'light',
-  syncEnabled: true,
-  autoSaveEnabled: true,
-  collaborationEnabled: true,
-  showRecent: true,
-  showWeather: true,
-  showNotes: true
+  autoSaveEnabled: true
 };
 
 // Initialize
@@ -156,12 +138,7 @@ async function loadUserPreferences() {
 
     // Update form elements
     themeSelect.value = userPreferences.theme;
-    syncEnabledCheck.checked = userPreferences.syncEnabled;
     autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
-    collaborationEnabledCheck.checked = userPreferences.collaborationEnabled;
-    showRecentCheck.checked = userPreferences.showRecent;
-    showWeatherCheck.checked = userPreferences.showWeather;
-    showNotesCheck.checked = userPreferences.showNotes;
   } catch (error) {
     console.error('Error loading user preferences:', error);
   }
@@ -647,32 +624,7 @@ function setupEventListeners() {
     }
   });
 
-  // Import custom data button
-  importCustomDataBtn.addEventListener('click', () => {
-    importCustomDataFile.click();
-  });
 
-  // Import custom data file change
-  importCustomDataFile.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        try {
-          const jsonData = event.target.result;
-          importData(jsonData); // We'll use the same importData function as it already handles the custom format
-        } catch (error) {
-          console.error('Error reading custom format file:', error);
-          alert('Error reading file. Please try again.');
-        }
-      };
-
-      reader.readAsText(file);
-      // Reset the file input so the same file can be selected again if needed
-      e.target.value = '';
-    }
-  });
 
   // Tabs pane toggle button
   tabsToggleBtn.addEventListener('click', () => {
@@ -885,24 +837,7 @@ function hideSettingsModal() {
   settingsModal.classList.remove('show');
 }
 
-// Show share modal
-function showShareModal(_, isTeamInvite = false) {
-  emailsToShare = [];
-  shareEmailInput.value = '';
-  shareEmailsList.innerHTML = '';
 
-  // Change title for team invite
-  const modalTitle = shareModal.querySelector('h3');
-  modalTitle.textContent = isTeamInvite ? 'Invite Team Members' : 'Share Collection';
-
-  shareModal.classList.add('show');
-}
-
-// Hide share modal
-function hideShareModal() {
-  shareModal.classList.remove('show');
-  emailsToShare = [];
-}
 
 // Show workspace modal
 function showWorkspaceModal() {
@@ -916,35 +851,7 @@ function hideWorkspaceModal() {
   workspaceModal.classList.remove('show');
 }
 
-// Add email to share list
-function addEmailToShare() {
-  const email = shareEmailInput.value.trim();
 
-  if (email && isValidEmail(email) && !emailsToShare.includes(email)) {
-    emailsToShare.push(email);
-
-    const emailElement = document.createElement('div');
-    emailElement.className = 'email-item';
-
-    const emailText = document.createElement('div');
-    emailText.className = 'email-text';
-    emailText.textContent = email;
-
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-email';
-    removeBtn.innerHTML = '&times;';
-    removeBtn.addEventListener('click', () => {
-      emailsToShare = emailsToShare.filter(e => e !== email);
-      emailElement.remove();
-    });
-
-    emailElement.appendChild(emailText);
-    emailElement.appendChild(removeBtn);
-
-    shareEmailsList.appendChild(emailElement);
-    shareEmailInput.value = '';
-  }
-}
 
 // Save collection
 async function saveCollection() {
@@ -1063,36 +970,14 @@ async function saveCollection() {
   }
 }
 
-// Open collection tabs
-async function openCollection(collectionId) {
-  try {
-    const collection = await dataService.getCollection(collectionId);
-    if (!collection || !collection.tabs || collection.tabs.length === 0) {
-      alert('No tabs in this collection');
-      return;
-    }
 
-    // Open all tabs in the collection
-    collection.tabs.forEach(tab => {
-      chrome.tabs.create({ url: tab.url });
-    });
-  } catch (error) {
-    console.error('Error opening collection:', error);
-    alert('Error opening collection. Please try again.');
-  }
-}
 
 // Save settings
 async function saveSettings() {
   try {
     const updatedPreferences = {
       theme: themeSelect.value,
-      syncEnabled: syncEnabledCheck.checked,
-      autoSaveEnabled: autoSaveEnabledCheck.checked,
-      collaborationEnabled: collaborationEnabledCheck.checked,
-      showRecent: showRecentCheck.checked,
-      showWeather: showWeatherCheck.checked,
-      showNotes: showNotesCheck.checked
+      autoSaveEnabled: autoSaveEnabledCheck.checked
     };
 
     // Update settings in database
@@ -1117,8 +1002,8 @@ async function saveSettings() {
 
     hideSettingsModal();
 
-    // Refresh collections to update UI (if collaboration setting changed)
-    await loadCollections();
+    // Show success notification
+    showNotification('Settings saved successfully');
   } catch (error) {
     console.error('Error saving settings:', error);
     alert('Error saving settings. Please try again.');
@@ -1150,18 +1035,7 @@ async function createWorkspace() {
   }
 }
 
-// Share collection
-function shareCollection() {
-  if (emailsToShare.length === 0) {
-    alert('Please add at least one email to share with');
-    return;
-  }
 
-  // For now, just show a message since we don't have a backend for sharing
-  alert(`Sharing is not implemented yet. Would share with: ${emailsToShare.join(', ')}`);
-
-  hideShareModal();
-}
 
 // Set active workspace
 function setActiveWorkspace(workspaceId) {
@@ -1187,33 +1061,16 @@ function setActiveWorkspace(workspaceId) {
 
 // Sync tabs
 function syncTabs() {
-  if (!userPreferences.syncEnabled) {
-    alert('Sync is disabled. Enable it in settings first.');
-    return;
-  }
-
   // Show syncing animation
   syncBtn.classList.add('syncing');
 
-  // For now, just reload tabs
+  // Reload tabs
   loadOpenTabs();
 
   // Remove syncing animation after a delay
   setTimeout(() => {
     syncBtn.classList.remove('syncing');
   }, 1000);
-}
-
-// Helper function to format date
-function formatDate(timestamp) {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString();
-}
-
-// Helper function to validate email
-function isValidEmail(email) {
-  const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return re.test(email);
 }
 
 // Helper function to get default icon path
@@ -1327,7 +1184,7 @@ async function importData(jsonData) {
     // Determine the format of the imported data
     if (data.groups && Array.isArray(data.groups)) {
       // This is the custom format with groups, lists, and cards
-      const stats = await dataService.importCustomFormat(data);
+      const stats = await dataService._importCustomFormat(data);
 
       // Reload everything
       await loadSpaces();

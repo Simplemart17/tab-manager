@@ -21,15 +21,8 @@ class DataService {
   }
 
   async createDefaultSpaces() {
-    const defaultSpaces = [
-      { id: 'personal', name: 'Personal', color: '#ff5c8d', createdAt: Date.now() },
-      { id: 'work', name: 'Work', color: '#4caf50', createdAt: Date.now() },
-      { id: 'research', name: 'Research', color: '#ff9800', createdAt: Date.now() }
-    ];
-
-    for (const space of defaultSpaces) {
-      await dbService.addSpace(space);
-    }
+    const defaultSpace = { id: 'personal', name: 'Personal', color: '#914CE6', createdAt: Date.now() };
+    await dbService.addSpace(defaultSpace);
   }
 
   // Spaces methods
@@ -237,11 +230,6 @@ class DataService {
   async importData(data) {
     await this.init();
 
-    // Validate data structure
-    if (!data.spaces || !data.collections) {
-      throw new Error('Invalid data format for import');
-    }
-
     // Clear existing data
     const existingSpaces = await dbService.getSpaces();
     for (const space of existingSpaces) {
@@ -253,25 +241,35 @@ class DataService {
       await dbService.deleteCollection(collection.id);
     }
 
-    // Import spaces
-    for (const space of data.spaces) {
-      await dbService.addSpace(space);
-    }
+    // Determine the format and process accordingly
+    if (data.groups && Array.isArray(data.groups)) {
+      // This is the custom format with groups, lists, and cards
+      return this._importCustomFormat(data);
+    } else if (data.spaces && data.collections) {
+      // This is the standard Toby export format
+      // Import spaces
+      for (const space of data.spaces) {
+        await dbService.addSpace(space);
+      }
 
-    // Import collections
-    for (const collection of data.collections) {
-      await dbService.addCollection(collection);
-    }
+      // Import collections
+      for (const collection of data.collections) {
+        await dbService.addCollection(collection);
+      }
 
-    // Import settings if available
-    if (data.settings) {
-      await dbService.updateSettings(data.settings);
-    }
+      // Import settings if available
+      if (data.settings) {
+        await dbService.updateSettings(data.settings);
+      }
 
-    return true;
+      return { success: true };
+    } else {
+      throw new Error('Unrecognized data format for import');
+    }
   }
 
-  async importCustomFormat(data) {
+  // Private method for importing custom format
+  async _importCustomFormat(data) {
     await this.init();
 
     // Validate data structure
@@ -289,7 +287,6 @@ class DataService {
     // Process each group (space)
     for (const group of data.groups) {
       if (!group.name || !group.lists || !Array.isArray(group.lists)) {
-        console.warn('Skipping invalid group:', group);
         continue;
       }
 
@@ -309,14 +306,12 @@ class DataService {
       // Process each list (collection) in the space
       for (const list of group.lists) {
         if (!list.title || !list.cards || !Array.isArray(list.cards)) {
-          console.warn('Skipping invalid list:', list);
           continue;
         }
 
         // Format tabs from cards
         const tabs = list.cards.map(card => {
           if (!card.url) {
-            console.warn('Skipping invalid card:', card);
             return null;
           }
 

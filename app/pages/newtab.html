@@ -186,33 +186,10 @@
           </div>
         </div>
         <div class="settings-group">
-          <h4>Sync & Collaboration</h4>
-          <div class="setting-item">
-            <label for="sync-enabled">Enable Cloud Sync</label>
-            <input type="checkbox" id="sync-enabled">
-          </div>
+          <h4>Sync</h4>
           <div class="setting-item">
             <label for="auto-save-enabled">Auto-save tabs</label>
             <input type="checkbox" id="auto-save-enabled">
-          </div>
-          <div class="setting-item">
-            <label for="collaboration-enabled">Enable Team Collaboration</label>
-            <input type="checkbox" id="collaboration-enabled">
-          </div>
-        </div>
-        <div class="settings-group">
-          <h4>New Tab Page</h4>
-          <div class="setting-item">
-            <label for="show-recent">Show Recent Tabs</label>
-            <input type="checkbox" id="show-recent" checked>
-          </div>
-          <div class="setting-item">
-            <label for="show-weather">Show Weather</label>
-            <input type="checkbox" id="show-weather" checked>
-          </div>
-          <div class="setting-item">
-            <label for="show-notes">Show Notes</label>
-            <input type="checkbox" id="show-notes" checked>
           </div>
         </div>
         <div class="settings-group">
@@ -222,11 +199,6 @@
             <input type="file" id="import-data-file" style="display: none;" accept=".json">
             <button id="import-data-btn" class="button secondary">Import Data</button>
           </div>
-          <div class="setting-item">
-            <p class="setting-description">Import from custom JSON format (groups, lists, cards)</p>
-            <input type="file" id="import-custom-data-file" style="display: none;" accept=".json">
-            <button id="import-custom-data-btn" class="button secondary">Import Custom Format</button>
-          </div>
         </div>
         <div class="modal-actions">
           <button id="cancel-settings" class="button secondary">Cancel</button>
@@ -235,19 +207,7 @@
       </div>
     </div>
 
-    <!-- Team Sharing Modal -->
-    <div id="share-modal" class="modal">
-      <div class="modal-content">
-        <h3>Share Collection</h3>
-        <input type="text" id="share-email" placeholder="Add email address">
-        <button id="add-email" class="small-button">Add</button>
-        <div id="share-emails-list" class="share-emails-list"></div>
-        <div class="modal-actions">
-          <button id="cancel-share" class="button secondary">Cancel</button>
-          <button id="confirm-share" class="button primary">Share</button>
-        </div>
-      </div>
-    </div>
+
 
     <!-- Workspace Modal -->
     <div id="workspace-modal" class="modal">
