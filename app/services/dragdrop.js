@@ -87,10 +87,10 @@ class DragDropService {
 
     // Add a class to the element being dragged
     e.target.classList.add('dragging');
-    
+
     // Create a visual drag feedback
     this.createDragFeedback(e, 'tab');
-    
+
     // Set a custom drag image if supported
     if (e.dataTransfer.setDragImage && this.dragFeedbackElement) {
       e.dataTransfer.setDragImage(this.dragFeedbackElement, 15, 15);
@@ -111,10 +111,10 @@ class DragDropService {
 
     // Add a class to the element being dragged
     e.target.classList.add('dragging');
-    
+
     // Create a visual drag feedback
     this.createDragFeedback(e, 'collection');
-    
+
     // Set a custom drag image if supported
     if (e.dataTransfer.setDragImage && this.dragFeedbackElement) {
       e.dataTransfer.setDragImage(this.dragFeedbackElement, 20, 20);
@@ -129,9 +129,9 @@ class DragDropService {
   }
 
   // Handle drag enter
-  handleDragEnter(e, element) {
+  handleDragEnter(_, element) {
     element.classList.add('drag-over');
-    
+
     // Add visual indication based on compatibility
     if (this.draggedItemType === 'tab') {
       element.classList.add('can-drop-tab');
@@ -141,7 +141,7 @@ class DragDropService {
   }
 
   // Handle drag leave
-  handleDragLeave(e, element) {
+  handleDragLeave(_, element) {
     element.classList.remove('drag-over');
     element.classList.remove('can-drop-tab');
     element.classList.remove('can-drop-collection');
@@ -238,7 +238,7 @@ class DragDropService {
     const event = new CustomEvent('toby-data-change');
     document.dispatchEvent(event);
   }
-  
+
   /**
    * Create a visual feedback element for dragging
    * @param {DragEvent} e - The drag event
@@ -249,42 +249,48 @@ class DragDropService {
     if (this.dragFeedbackElement && this.dragFeedbackElement.parentNode) {
       document.body.removeChild(this.dragFeedbackElement);
     }
-    
+
     // Create a new feedback element
     this.dragFeedbackElement = document.createElement('div');
     this.dragFeedbackElement.className = `drag-feedback drag-feedback-${type}`;
-    
+
     // Add content based on type
     if (type === 'tab') {
-      const title = e.target.querySelector('.tab-title')?.textContent || 'Tab';
-      const favicon = e.target.querySelector('.tab-favicon')?.cloneNode(true) || '';
-      
+      // Try to get title from either tab-title or collection-tab-title
+      const title = e.target.querySelector('.tab-title')?.textContent ||
+                   e.target.querySelector('.collection-tab-title')?.textContent || 'Tab';
+
+      // Try to get favicon from either tab-favicon or collection-tab-favicon
+      const favicon = e.target.querySelector('.tab-favicon')?.cloneNode(true) ||
+                     e.target.querySelector('.collection-tab-favicon')?.cloneNode(true) || '';
+
       if (favicon) {
         this.dragFeedbackElement.appendChild(favicon);
       }
-      
+
       const titleSpan = document.createElement('span');
       titleSpan.textContent = title.length > 20 ? title.substring(0, 20) + '...' : title;
       this.dragFeedbackElement.appendChild(titleSpan);
     } else if (type === 'collection') {
-      const title = e.target.querySelector('.collection-name')?.textContent || 'Collection';
-      
+      const title = e.target.querySelector('.collection-name')?.textContent ||
+                   e.target.querySelector('.collection-title')?.textContent || 'Collection';
+
       const icon = document.createElement('div');
       icon.className = 'collection-icon';
       this.dragFeedbackElement.appendChild(icon);
-      
+
       const titleSpan = document.createElement('span');
       titleSpan.textContent = title.length > 15 ? title.substring(0, 15) + '...' : title;
       this.dragFeedbackElement.appendChild(titleSpan);
     }
-    
+
     // Add to document but make it invisible
     this.dragFeedbackElement.style.position = 'absolute';
     this.dragFeedbackElement.style.top = '-1000px';
     this.dragFeedbackElement.style.left = '-1000px';
     document.body.appendChild(this.dragFeedbackElement);
   }
-  
+
   /**
    * Show visual feedback after a drop operation
    * @param {HTMLElement} element - The element where the drop occurred
@@ -293,7 +299,7 @@ class DragDropService {
   showDropFeedback(element, status) {
     // Add appropriate class
     element.classList.add(`drop-${status}`);
-    
+
     // Remove class after animation completes
     setTimeout(() => {
       element.classList.remove(`drop-${status}`);
