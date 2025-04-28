@@ -1,5 +1,5 @@
 {
-  "name": "tab-manager-pro",
+  "name": "tab-manager",
   "version": "1.0.0",
   "description": "Advanced tab management with cloud sync and team collaboration",
   "main": "app/background.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/tab-manager-pro.git"
+    "url": "git+https://github.com/Simplemart17/tab-manager.git"
   },
   "keywords": [
     "chrome-extension",
@@ -20,9 +20,9 @@
   "author": "Your Name",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yourusername/tab-manager-pro/issues"
+    "url": "https://github.com/Simplemart17/tab-manager/issues"
   },
-  "homepage": "https://github.com/yourusername/tab-manager-pro#readme",
+  "homepage": "https://github.com/Simplemart17/tab-manager#readme",
   "devDependencies": {
     "eslint": "^8.39.0",
     "eslint-config-prettier": "^8.8.0",
