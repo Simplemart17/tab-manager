@@ -10,7 +10,10 @@
   <div class="newtab-container">
     <header class="main-header">
       <div class="header-left">
-        <h1>Simple Tabs</h1>
+        <div class="app-logo">
+          <span class="grenze-gotisch-simple simple">Simple Tab</span>
+          <span class="lavishly-yours-regular plus">Plus</span>
+        </div>
         <div class="search-container">
           <input type="text" id="search-input" placeholder="Search tabs, collections, or the web...">
           <button id="search-btn">
@@ -47,15 +50,22 @@
 
     <div class="main-content">
       <div class="sidebar">
+        <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar" title="Collapse/Expand sidebar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-toggle-icon">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
         <div class="sidebar-section">
-          <h3>Spaces</h3>
-          <button id="new-workspace-btn" class="sidebar-new-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            New
-          </button>
+          <div class="sidebar-header">
+            <h3>Spaces</h3>
+            <button id="new-workspace-btn" class="sidebar-new-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              New
+            </button>
+          </div>
           <div id="workspaces-list" class="sidebar-list">
             <div class="sidebar-item active">
               <span>Personal</span>

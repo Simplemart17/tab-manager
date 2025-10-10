@@ -1,3 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@100..900&family=Lavishly+Yours&display=swap');
+
+/* App Logo */
+.app-logo { position: relative; display: inline-block; line-height: 1; }
+.app-logo .simple { color: var(--primary-color); font-size: 18px; }
+.app-logo .plus { position: absolute; right: 0px; bottom: 16px; font-size: 18px; opacity: 0.9; color: var(--text-secondary); }
+.app-logo.small .simple { font-size: 18px; }
+.app-logo.small .plus { font-size: 18px; right: 0px; bottom: 16px; }
+
+.grenze-gotisch-simple { font-family: "Grenze Gotisch", serif; font-optical-sizing: auto; font-weight: 500; font-style: normal; }
+.lavishly-yours-regular { font-family: "Lavishly Yours", cursive; font-weight: 400; font-style: normal; }
+
 :root {
   --primary-color: #ff5c8d;
   --primary-light: #ff7ca3;
@@ -272,6 +284,11 @@ body {
 .modal.show {
   display: flex;
 }
+
+/* Settings modal modern look */
+#settings-modal .modal-content { max-width: 360px; border-radius: 14px; padding: 20px; background-color: var(--surface-color); border: 1px solid var(--border-color); box-shadow: var(--shadow-md); }
+#settings-modal .settings-group { background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; box-shadow: var(--shadow-sm); }
+#settings-modal .modal-actions .button { border-radius: 8px; }
 
 .modal-content {
   background-color: var(--background-color);

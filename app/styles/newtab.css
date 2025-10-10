@@ -1,3 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@100..900&family=Lavishly+Yours&display=swap');
+
+:root { --sidebar-width: 240px; }
+
+/* App Logo */
+.app-logo { position: relative; display: inline-block; line-height: 1; }
+.app-logo .simple { color: var(--primary-color); font-size: 24px; }
+.app-logo .plus { position: absolute; right: 0px; bottom: -16px; font-size: 24px; opacity: 0.9; color: var(--text-secondary); }
+
+/* Sidebar toggle */
+.sidebar-toggle { align-self: flex-end; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px; border-radius: 6px; transition: background-color 0.2s ease, transform 0.2s ease; }
+.sidebar-toggle:hover { background-color: var(--background-color); transform: translateX(1px); }
+.sidebar-toggle-icon { transition: transform 0.25s ease; }
+.sidebar.collapsed .sidebar-toggle-icon { transform: rotate(180deg); }
+.grenze-gotisch-simple { font-family: "Grenze Gotisch", serif; font-optical-sizing: auto; font-weight: 500; font-style: normal; }
+.lavishly-yours-regular { font-family: "Lavishly Yours", cursive; font-weight: 400; font-style: normal; }
+
+
 :root {
   /* Common variables */
   --primary-color: #914CE6; /* Main purple color */
@@ -268,7 +286,7 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-width);
   border-right: 1px solid var(--border-color);
   padding: 16px;
   display: flex;
@@ -276,16 +294,27 @@ body {
   gap: 24px;
   overflow-y: auto;
   background-color: var(--surface-color);
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+/* Collapsed sidebar */
+.sidebar.collapsed { --sidebar-width: 56px; padding: 16px 8px; }
+.sidebar.collapsed .sidebar-section h3,
+.sidebar.collapsed .sidebar-new-btn,
+.sidebar.collapsed .sidebar-item.active,
+.sidebar.collapsed .sidebar-item span { display: none; }
+.sidebar.collapsed .workspace-actions { display: none !important; }
+
+.sidebar-header { 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .sidebar-section h3 {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .sidebar-new-btn {
@@ -319,12 +348,14 @@ body {
   padding: 8px 12px;
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  will-change: transform, background-color, color;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
   margin-bottom: 4px;
 }
 
 .sidebar-item:hover {
-  background-color: rgba(var(--primary-color-rgb), 0.1);
+  background-color: rgba(var(--primary-color-rgb), 0.12);
+  transform: translateX(2px);
 }
 
 .sidebar-item.active {
@@ -1339,6 +1370,13 @@ body {
   margin-bottom: 12px;
   color: var(--text-secondary);
 }
+/* Settings modal modern look */
+#settings-modal .modal-content { max-width: 640px; border-radius: 16px; padding: 28px; background-color: var(--surface-color); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); }
+#settings-modal h3 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+#settings-modal .settings-group { background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); }
+#settings-modal .setting-item { padding: 6px 0; }
+#settings-modal .modal-actions .button { border-radius: 8px; }
+
 
 .setting-item {
   display: flex;
@@ -1565,7 +1603,7 @@ body {
 .bulk-operations-bar {
   position: fixed;
   bottom: 0;
-  left: 250px;
+  left: var(--sidebar-width);
   right: 0;
   background-color: var(--surface-color);
   border-top: 2px solid var(--primary-color);

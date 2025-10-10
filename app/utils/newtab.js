@@ -39,6 +39,10 @@ const closeTabsPaneBtn = document.getElementById('close-tabs-pane');
 const tabsCount = document.querySelector('.tabs-count');
 const tabsToggleIcon = document.querySelector('.tabs-toggle-icon');
 
+// Sidebar elements
+const sidebar = document.querySelector('.sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+
 // Modals
 const saveCollectionModal = document.getElementById('save-collection-modal');
 const settingsModal = document.getElementById('settings-modal');
@@ -805,6 +809,13 @@ function setupEventListeners() {
   });
 
 
+
+  // Sidebar collapse/expand
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+    });
+  }
 
   // Tabs pane toggle button
   tabsToggleBtn.addEventListener('click', () => {
