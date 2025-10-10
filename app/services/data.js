@@ -76,6 +76,61 @@ class DataService {
     return dbService.deleteSpace(id);
   }
 
+  async deleteSpaceWithMigration(spaceId, targetSpaceId) {
+    await this.init();
+
+    // Validate that target space exists
+    if (targetSpaceId) {
+      const targetSpace = await dbService.getSpace(targetSpaceId);
+      if (!targetSpace) {
+        throw new Error(`Target space with id ${targetSpaceId} not found`);
+      }
+    }
+
+    // Get all collections in the space to be deleted
+    const collections = await dbService.getCollectionsBySpace(spaceId);
+
+    if (targetSpaceId) {
+      // Migrate collections to target space
+      for (const collection of collections) {
+        await dbService.updateCollection({
+          ...collection,
+          spaceId: targetSpaceId,
+          updatedAt: Date.now()
+        });
+      }
+    } else {
+      // Delete all collections if no target space specified
+      for (const collection of collections) {
+        await dbService.deleteCollection(collection.id);
+      }
+    }
+
+    // Delete the space
+    return dbService.deleteSpace(spaceId);
+  }
+
+  async migrateCollectionsToSpace(sourceSpaceId, targetSpaceId) {
+    await this.init();
+
+    const targetSpace = await dbService.getSpace(targetSpaceId);
+    if (!targetSpace) {
+      throw new Error(`Target space with id ${targetSpaceId} not found`);
+    }
+
+    const collections = await dbService.getCollectionsBySpace(sourceSpaceId);
+
+    for (const collection of collections) {
+      await dbService.updateCollection({
+        ...collection,
+        spaceId: targetSpaceId,
+        updatedAt: Date.now()
+      });
+    }
+
+    return collections.length;
+  }
+
   // Collections methods
   async getCollections() {
     await this.init();

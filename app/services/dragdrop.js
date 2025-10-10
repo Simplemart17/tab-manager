@@ -14,6 +14,8 @@ class DragDropService {
     tabElement.setAttribute('draggable', 'true');
 
     tabElement.addEventListener('dragstart', (e) => {
+      // Stop propagation to prevent parent elements from being dragged
+      e.stopPropagation();
       this.handleTabDragStart(e, tabId, collectionId);
     });
 
@@ -22,19 +24,26 @@ class DragDropService {
     });
   }
 
-  // Set up drag and drop for a collection element
-  setupCollectionDragDrop(collectionElement, collectionId) {
-    collectionElement.setAttribute('draggable', 'true');
+  // Set up drag and drop for a collection element (header only, not the whole group)
+  setupCollectionDragDrop(collectionHeader, collectionElement, collectionId) {
+    // Make only the header draggable
+    collectionHeader.setAttribute('draggable', 'true');
 
-    collectionElement.addEventListener('dragstart', (e) => {
+    collectionHeader.addEventListener('dragstart', (e) => {
+      // Only allow dragging from the header, not from action buttons
+      if (e.target.closest('.collection-action-btn') ||
+          e.target.closest('.collection-toggle-icon')) {
+        e.preventDefault();
+        return;
+      }
       this.handleCollectionDragStart(e, collectionId);
     });
 
-    collectionElement.addEventListener('dragend', (e) => {
+    collectionHeader.addEventListener('dragend', (e) => {
       this.handleDragEnd(e);
     });
 
-    // Make collection a drop target for tabs
+    // Make the entire collection element a drop target for tabs
     collectionElement.addEventListener('dragover', (e) => {
       this.handleDragOver(e);
     });
@@ -192,10 +201,14 @@ class DragDropService {
   async handleCollectionDrop(e, targetCollectionId) {
     e.preventDefault();
 
-    // Remove drag-over classes
-    e.currentTarget.classList.remove('drag-over');
-    e.currentTarget.classList.remove('can-drop-tab');
-    e.currentTarget.classList.remove('can-drop-collection');
+    const dropEl = e.currentTarget;
+
+    // Remove drag-over classes safely
+    if (dropEl) {
+      dropEl.classList.remove('drag-over');
+      dropEl.classList.remove('can-drop-tab');
+      dropEl.classList.remove('can-drop-collection');
+    }
 
     try {
       // Try to get data from different formats
@@ -207,47 +220,51 @@ class DragDropService {
         jsonData = e.dataTransfer.getData('text/plain');
       }
 
-      // If we still don't have data, throw an error
+      // If we still don't have data, stop silently
       if (!jsonData) {
-        throw new Error('No valid data found in drop event');
+        return;
       }
 
-      const data = JSON.parse(jsonData);
-
-      if (data.type === 'tab' && data.sourceId !== targetCollectionId) {
-        // Get source and target collection names for the notification
-        const sourceCollection = await dataService.getCollection(data.sourceId);
-        const targetCollection = await dataService.getCollection(targetCollectionId);
-
-        if (!sourceCollection) {
-          throw new Error(`Source collection not found: ${data.sourceId}`);
-        }
-
-        if (!targetCollection) {
-          throw new Error(`Target collection not found: ${targetCollectionId}`);
-        }
-
-        // Add visual feedback for the drop
-        this.showDropFeedback(e.currentTarget, 'success');
-
-        // Move tab from one collection to another
-        await dataService.moveTabBetweenCollections(data.sourceId, targetCollectionId, data.id);
-
-        // Trigger an event to notify that data has changed
-        this.dispatchDataChangeEvent();
-
-        // Dispatch a custom event for the notification
-        const notificationEvent = new CustomEvent('sim-tab-moved', {
-          detail: {
-            sourceCollection: sourceCollection?.name || 'Unknown collection',
-            targetCollection: targetCollection?.name || 'Unknown collection'
-          }
-        });
-        document.dispatchEvent(notificationEvent);
+      let data;
+      try {
+        data = JSON.parse(jsonData);
+      } catch (_) {
+        return;
       }
+
+      // Only handle moving tabs between existing collections
+      if (data.type !== 'tab' || !data.sourceId || data.sourceId === targetCollectionId) {
+        return;
+      }
+
+      // Get source and target collection names for the notification
+      const sourceCollection = await dataService.getCollection(data.sourceId);
+      const targetCollection = await dataService.getCollection(targetCollectionId);
+
+      if (!sourceCollection || !targetCollection) {
+        return;
+      }
+
+      // Add visual feedback for the drop
+      this.showDropFeedback(dropEl, 'success');
+
+      // Move tab from one collection to another
+      await dataService.moveTabBetweenCollections(data.sourceId, targetCollectionId, data.id);
+
+      // Trigger an event to notify that data has changed
+      this.dispatchDataChangeEvent();
+
+      // Dispatch a custom event for the notification
+      const notificationEvent = new CustomEvent('sim-tab-moved', {
+        detail: {
+          sourceCollection: sourceCollection?.name || 'Unknown collection',
+          targetCollection: targetCollection?.name || 'Unknown collection'
+        }
+      });
+      document.dispatchEvent(notificationEvent);
     } catch (error) {
       console.error('Error handling collection drop:', error);
-      this.showDropFeedback(e.currentTarget, 'error');
+      this.showDropFeedback(dropEl, 'error');
     }
   }
 
@@ -355,6 +372,7 @@ class DragDropService {
    * @param {string} status - The status of the drop ('success' or 'error')
    */
   showDropFeedback(element, status) {
+    if (!element) return;
     // Add appropriate class
     element.classList.add(`drop-${status}`);
 

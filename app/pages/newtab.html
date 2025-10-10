@@ -224,6 +224,78 @@
       </div>
     </div>
 
+    <!-- Rename Workspace Modal -->
+    <div id="rename-workspace-modal" class="modal">
+      <div class="modal-content">
+        <h3>Rename Workspace</h3>
+        <input type="text" id="rename-workspace-name" placeholder="Workspace Name">
+        <div class="color-picker">
+          <label for="rename-workspace-color">Color</label>
+          <input type="color" id="rename-workspace-color" value="#4f5bd5">
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-rename-workspace" class="button secondary">Cancel</button>
+          <button id="confirm-rename-workspace" class="button primary">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Workspace Modal -->
+    <div id="delete-workspace-modal" class="modal">
+      <div class="modal-content">
+        <h3>Delete Workspace</h3>
+        <p class="warning-text">Are you sure you want to delete this workspace?</p>
+        <div id="workspace-collections-info" class="info-box"></div>
+        <div class="setting-item">
+          <label for="migrate-to-workspace">Migrate collections to:</label>
+          <select id="migrate-to-workspace">
+            <option value="">Delete all collections</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-delete-workspace" class="button secondary">Cancel</button>
+          <button id="confirm-delete-workspace" class="button primary danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rename Collection Modal -->
+    <div id="rename-collection-modal" class="modal">
+      <div class="modal-content">
+        <h3>Rename Collection</h3>
+        <input type="text" id="rename-collection-name" placeholder="Collection Name">
+        <div class="modal-actions">
+          <button id="cancel-rename-collection" class="button secondary">Cancel</button>
+          <button id="confirm-rename-collection" class="button primary">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Collection Modal -->
+    <div id="delete-collection-modal" class="modal">
+      <div class="modal-content">
+        <h3>Delete Collection</h3>
+        <p class="warning-text">Are you sure you want to delete this collection?</p>
+        <div id="collection-tabs-info" class="info-box"></div>
+        <div class="modal-actions">
+          <button id="cancel-delete-collection" class="button secondary">Cancel</button>
+          <button id="confirm-delete-collection" class="button primary danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Operations Bar -->
+    <div id="bulk-operations-bar" class="bulk-operations-bar" style="display: none;">
+      <div class="bulk-ops-left">
+        <span id="bulk-selected-count">0 tabs selected</span>
+        <button id="bulk-deselect-all" class="button secondary small">Deselect All</button>
+      </div>
+      <div class="bulk-ops-right">
+        <button id="bulk-save-tabs" class="button primary small">Save Selected</button>
+        <button id="bulk-delete-tabs" class="button danger small">Delete Selected</button>
+      </div>
+    </div>
+
     <script type="module" src="../utils/newtab.js"></script>
   </div>
 </body>

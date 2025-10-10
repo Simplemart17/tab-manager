@@ -43,6 +43,10 @@ const tabsToggleIcon = document.querySelector('.tabs-toggle-icon');
 const saveCollectionModal = document.getElementById('save-collection-modal');
 const settingsModal = document.getElementById('settings-modal');
 const workspaceModal = document.getElementById('workspace-modal');
+const renameWorkspaceModal = document.getElementById('rename-workspace-modal');
+const deleteWorkspaceModal = document.getElementById('delete-workspace-modal');
+const renameCollectionModal = document.getElementById('rename-collection-modal');
+const deleteCollectionModal = document.getElementById('delete-collection-modal');
 
 // Save Collection Modal
 const collectionNameInput = document.getElementById('collection-name');
@@ -64,6 +68,35 @@ const workspaceColorInput = document.getElementById('workspace-color');
 const cancelWorkspaceBtn = document.getElementById('cancel-workspace');
 const confirmWorkspaceBtn = document.getElementById('confirm-workspace');
 
+// Rename Workspace Modal
+const renameWorkspaceNameInput = document.getElementById('rename-workspace-name');
+const renameWorkspaceColorInput = document.getElementById('rename-workspace-color');
+const cancelRenameWorkspaceBtn = document.getElementById('cancel-rename-workspace');
+const confirmRenameWorkspaceBtn = document.getElementById('confirm-rename-workspace');
+
+// Delete Workspace Modal
+const migrateToWorkspaceSelect = document.getElementById('migrate-to-workspace');
+const workspaceCollectionsInfo = document.getElementById('workspace-collections-info');
+const cancelDeleteWorkspaceBtn = document.getElementById('cancel-delete-workspace');
+const confirmDeleteWorkspaceBtn = document.getElementById('confirm-delete-workspace');
+
+// Rename Collection Modal
+const renameCollectionNameInput = document.getElementById('rename-collection-name');
+const cancelRenameCollectionBtn = document.getElementById('cancel-rename-collection');
+const confirmRenameCollectionBtn = document.getElementById('confirm-rename-collection');
+
+// Delete Collection Modal
+const collectionTabsInfo = document.getElementById('collection-tabs-info');
+const cancelDeleteCollectionBtn = document.getElementById('cancel-delete-collection');
+const confirmDeleteCollectionBtn = document.getElementById('confirm-delete-collection');
+
+// Bulk Operations
+const bulkOperationsBar = document.getElementById('bulk-operations-bar');
+const bulkSelectedCount = document.getElementById('bulk-selected-count');
+const bulkDeselectAllBtn = document.getElementById('bulk-deselect-all');
+const bulkSaveTabsBtn = document.getElementById('bulk-save-tabs');
+const bulkDeleteTabsBtn = document.getElementById('bulk-delete-tabs');
+
 // State
 let currentTabs = [];
 let selectedTabs = [];
@@ -74,6 +107,10 @@ let userPreferences = {
 };
 let isSearchActive = false;
 let searchResults = [];
+let currentWorkspaceForAction = null;
+let currentCollectionForAction = null;
+let bulkSelectedTabs = new Set();
+let isBulkSelectMode = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -198,10 +235,53 @@ function renderWorkspaces(spaces) {
       workspaceItem.classList.add('active');
     }
 
-    workspaceItem.innerHTML = `<span>${space.name}</span>`;
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = space.name;
+    workspaceItem.appendChild(nameSpan);
 
-    workspaceItem.addEventListener('click', () => {
-      setActiveWorkspace(space.id);
+    // Add action buttons
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'workspace-actions';
+
+    // Rename button
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'workspace-action-btn';
+    renameBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+    `;
+    renameBtn.title = 'Rename workspace';
+    renameBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showRenameWorkspaceModal(space);
+    });
+
+    // Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'workspace-action-btn delete';
+    deleteBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+    `;
+    deleteBtn.title = 'Delete workspace';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showDeleteWorkspaceModal(space);
+    });
+
+    actionsDiv.appendChild(renameBtn);
+    actionsDiv.appendChild(deleteBtn);
+    workspaceItem.appendChild(actionsDiv);
+
+    workspaceItem.addEventListener('click', (e) => {
+      // Only set active workspace if not clicking on action buttons
+      if (!e.target.closest('.workspace-actions')) {
+        setActiveWorkspace(space.id);
+      }
     });
 
     // Set up as drop target for collections
@@ -300,6 +380,60 @@ function createCollectionGroup(collection) {
   count.className = 'collection-count';
   count.textContent = `${collection.tabs ? collection.tabs.length : 0} tab${collection.tabs && collection.tabs.length !== 1 ? 's' : ''}`;
 
+  // Add action buttons
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'collection-actions';
+
+  // Rename button
+  const renameBtn = document.createElement('button');
+  renameBtn.className = 'collection-action-btn';
+  renameBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+  `;
+  renameBtn.title = 'Rename collection';
+  renameBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showRenameCollectionModal(collection);
+  });
+
+  // Deduplicate button
+  const dedupeBtn = document.createElement('button');
+  dedupeBtn.className = 'collection-action-btn dedupe';
+  dedupeBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+      <line x1="9" y1="12" x2="15" y2="12"></line>
+    </svg>
+  `;
+  dedupeBtn.title = 'Remove duplicate tabs';
+  dedupeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    deduplicateTabs(collection.id);
+  });
+
+  // Delete button
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'collection-action-btn delete';
+  deleteBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  `;
+  deleteBtn.title = 'Delete collection';
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showDeleteCollectionModal(collection);
+  });
+
+  actionsDiv.appendChild(renameBtn);
+  actionsDiv.appendChild(dedupeBtn);
+  actionsDiv.appendChild(deleteBtn);
+
   const toggleIcon = document.createElement('div');
   toggleIcon.className = 'collection-toggle-icon';
   toggleIcon.innerHTML = `
@@ -309,6 +443,7 @@ function createCollectionGroup(collection) {
   `;
 
   headerRight.appendChild(count);
+  headerRight.appendChild(actionsDiv);
   headerRight.appendChild(toggleIcon);
 
   header.appendChild(headerLeft);
@@ -345,12 +480,15 @@ function createCollectionGroup(collection) {
   }
 
   // Toggle collection collapse when header is clicked
-  header.addEventListener('click', () => {
-    toggleCollectionCollapse(group);
+  header.addEventListener('click', (e) => {
+    // Don't toggle if clicking on action buttons
+    if (!e.target.closest('.collection-actions')) {
+      toggleCollectionCollapse(group);
+    }
   });
 
-  // Set up drag and drop
-  dragDropService.setupCollectionDragDrop(group, collection.id);
+  // Set up drag and drop - pass header separately
+  dragDropService.setupCollectionDragDrop(header, group, collection.id);
 
   return group;
 }
@@ -561,9 +699,7 @@ function createTabCard(tab) {
     chrome.windows.update(tab.windowId, { focused: true });
   });
 
-  // Set up drag and drop for tabs
-  dragDropService.setupTabDragDrop(card, tab.id, null); // null because it's not in a collection yet
-
+  // Do not enable drag for open tabs to collections
   return card;
 }
 
@@ -690,6 +826,55 @@ function setupEventListeners() {
   // Confirm workspace button
   confirmWorkspaceBtn.addEventListener('click', () => {
     createWorkspace();
+  });
+
+  // Rename workspace modal buttons
+  cancelRenameWorkspaceBtn.addEventListener('click', () => {
+    hideRenameWorkspaceModal();
+  });
+
+  confirmRenameWorkspaceBtn.addEventListener('click', () => {
+    renameWorkspace();
+  });
+
+  // Delete workspace modal buttons
+  cancelDeleteWorkspaceBtn.addEventListener('click', () => {
+    hideDeleteWorkspaceModal();
+  });
+
+  confirmDeleteWorkspaceBtn.addEventListener('click', () => {
+    deleteWorkspace();
+  });
+
+  // Rename collection modal buttons
+  cancelRenameCollectionBtn.addEventListener('click', () => {
+    hideRenameCollectionModal();
+  });
+
+  confirmRenameCollectionBtn.addEventListener('click', () => {
+    renameCollection();
+  });
+
+  // Delete collection modal buttons
+  cancelDeleteCollectionBtn.addEventListener('click', () => {
+    hideDeleteCollectionModal();
+  });
+
+  confirmDeleteCollectionBtn.addEventListener('click', () => {
+    deleteCollection();
+  });
+
+  // Bulk operations buttons
+  bulkDeselectAllBtn.addEventListener('click', () => {
+    deselectAllTabs();
+  });
+
+  bulkSaveTabsBtn.addEventListener('click', () => {
+    saveBulkSelectedTabs();
+  });
+
+  bulkDeleteTabsBtn.addEventListener('click', () => {
+    deleteBulkSelectedTabs();
   });
 
   // Setup workspace items click events
@@ -1329,4 +1514,313 @@ function showNotification(message, type = 'success') {
       notification.remove();
     }, 300);
   }, 3000);
+}
+
+// Workspace rename functions
+function showRenameWorkspaceModal(space) {
+  currentWorkspaceForAction = space;
+  renameWorkspaceNameInput.value = space.name;
+  renameWorkspaceColorInput.value = space.color || '#4f5bd5';
+  renameWorkspaceModal.classList.add('show');
+}
+
+function hideRenameWorkspaceModal() {
+  renameWorkspaceModal.classList.remove('show');
+  currentWorkspaceForAction = null;
+}
+
+async function renameWorkspace() {
+  const name = renameWorkspaceNameInput.value.trim();
+  const color = renameWorkspaceColorInput.value;
+
+  if (!name) {
+    alert('Please enter a workspace name');
+    return;
+  }
+
+  try {
+    await dataService.updateSpace(currentWorkspaceForAction.id, { name, color });
+    await loadSpaces();
+    hideRenameWorkspaceModal();
+    showNotification('Workspace renamed successfully');
+  } catch (error) {
+    console.error('Error renaming workspace:', error);
+    alert('Error renaming workspace. Please try again.');
+  }
+}
+
+// Workspace delete functions
+async function showDeleteWorkspaceModal(space) {
+  currentWorkspaceForAction = space;
+
+  // Get collections in this workspace
+  const collections = await dataService.getCollectionsBySpace(space.id);
+
+  // Update info box
+  if (collections.length > 0) {
+    const totalTabs = collections.reduce((sum, col) => sum + (col.tabs ? col.tabs.length : 0), 0);
+    workspaceCollectionsInfo.innerHTML = `
+      <strong>This workspace contains:</strong><br>
+      ${collections.length} collection${collections.length !== 1 ? 's' : ''} with ${totalTabs} tab${totalTabs !== 1 ? 's' : ''}
+    `;
+  } else {
+    workspaceCollectionsInfo.innerHTML = '<strong>This workspace is empty.</strong>';
+  }
+
+  // Populate migration dropdown
+  const spaces = await dataService.getSpaces();
+  migrateToWorkspaceSelect.innerHTML = '<option value="">Delete all collections</option>';
+
+  spaces.forEach(s => {
+    if (s.id !== space.id) {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = s.name;
+      migrateToWorkspaceSelect.appendChild(option);
+    }
+  });
+
+  deleteWorkspaceModal.classList.add('show');
+}
+
+function hideDeleteWorkspaceModal() {
+  deleteWorkspaceModal.classList.remove('show');
+  currentWorkspaceForAction = null;
+}
+
+async function deleteWorkspace() {
+  const targetSpaceId = migrateToWorkspaceSelect.value || null;
+
+  try {
+    await dataService.deleteSpaceWithMigration(currentWorkspaceForAction.id, targetSpaceId);
+
+    // If we deleted the active workspace, switch to another one
+    if (activeWorkspace === currentWorkspaceForAction.id) {
+      const spaces = await dataService.getSpaces();
+      if (spaces.length > 0) {
+        activeWorkspace = spaces[0].id;
+      }
+    }
+
+    await loadSpaces();
+    await loadCollections();
+    hideDeleteWorkspaceModal();
+
+    if (targetSpaceId) {
+      showNotification('Workspace deleted and collections migrated successfully');
+    } else {
+      showNotification('Workspace and all collections deleted successfully');
+    }
+  } catch (error) {
+    console.error('Error deleting workspace:', error);
+    alert('Error deleting workspace. Please try again.');
+  }
+}
+
+// Collection rename functions
+function showRenameCollectionModal(collection) {
+  currentCollectionForAction = collection;
+  renameCollectionNameInput.value = collection.name;
+  renameCollectionModal.classList.add('show');
+}
+
+function hideRenameCollectionModal() {
+  renameCollectionModal.classList.remove('show');
+  currentCollectionForAction = null;
+}
+
+async function renameCollection() {
+  const name = renameCollectionNameInput.value.trim();
+
+  if (!name) {
+    alert('Please enter a collection name');
+    return;
+  }
+
+  try {
+    await dataService.updateCollection(currentCollectionForAction.id, { name });
+    await loadCollections();
+    hideRenameCollectionModal();
+    showNotification('Collection renamed successfully');
+  } catch (error) {
+    console.error('Error renaming collection:', error);
+    alert('Error renaming collection. Please try again.');
+  }
+}
+
+// Collection delete functions
+async function showDeleteCollectionModal(collection) {
+  currentCollectionForAction = collection;
+
+  // Update info box
+  const tabCount = collection.tabs ? collection.tabs.length : 0;
+  collectionTabsInfo.innerHTML = `
+    <strong>This collection contains ${tabCount} tab${tabCount !== 1 ? 's' : ''}.</strong><br>
+    All tabs will be permanently deleted.
+  `;
+
+  deleteCollectionModal.classList.add('show');
+}
+
+function hideDeleteCollectionModal() {
+  deleteCollectionModal.classList.remove('show');
+  currentCollectionForAction = null;
+}
+
+async function deleteCollection() {
+  try {
+    await dataService.deleteCollection(currentCollectionForAction.id);
+    await loadCollections();
+    hideDeleteCollectionModal();
+    showNotification('Collection deleted successfully');
+  } catch (error) {
+    console.error('Error deleting collection:', error);
+    alert('Error deleting collection. Please try again.');
+  }
+}
+
+// Deduplication function
+async function deduplicateTabs(collectionId) {
+  try {
+    const collection = await dataService.getCollection(collectionId);
+    if (!collection || !collection.tabs || collection.tabs.length === 0) {
+      showNotification('No tabs to deduplicate', 'warning');
+      return;
+    }
+
+    // Find duplicates based on URL
+    const uniqueTabs = [];
+    const seenUrls = new Set();
+    let duplicateCount = 0;
+
+    collection.tabs.forEach(tab => {
+      if (!seenUrls.has(tab.url)) {
+        seenUrls.add(tab.url);
+        uniqueTabs.push(tab);
+      } else {
+        duplicateCount++;
+      }
+    });
+
+    if (duplicateCount === 0) {
+      showNotification('No duplicate tabs found', 'warning');
+      return;
+    }
+
+    // Confirm before removing
+    if (confirm(`Found ${duplicateCount} duplicate tab${duplicateCount !== 1 ? 's' : ''}. Remove them?`)) {
+      await dataService.updateCollection(collectionId, { tabs: uniqueTabs });
+      await loadCollections();
+      showNotification(`Removed ${duplicateCount} duplicate tab${duplicateCount !== 1 ? 's' : ''}`);
+    }
+  } catch (error) {
+    console.error('Error deduplicating tabs:', error);
+    alert('Error removing duplicates. Please try again.');
+  }
+}
+
+// Bulk selection functions
+function toggleTabSelection(tabId, tabElement) {
+  if (bulkSelectedTabs.has(tabId)) {
+    bulkSelectedTabs.delete(tabId);
+    tabElement.classList.remove('selected');
+  } else {
+    bulkSelectedTabs.add(tabId);
+    tabElement.classList.add('selected');
+  }
+
+  updateBulkOperationsBar();
+}
+
+function updateBulkOperationsBar() {
+  const count = bulkSelectedTabs.size;
+
+  if (count > 0) {
+    bulkSelectedCount.textContent = `${count} tab${count !== 1 ? 's' : ''} selected`;
+    bulkOperationsBar.style.display = 'flex';
+  } else {
+    bulkOperationsBar.style.display = 'none';
+  }
+}
+
+function deselectAllTabs() {
+  bulkSelectedTabs.clear();
+  document.querySelectorAll('.collection-tab-card.selected, .tab-card.selected').forEach(el => {
+    el.classList.remove('selected');
+    const checkbox = el.querySelector('.tab-checkbox');
+    if (checkbox) checkbox.checked = false;
+  });
+  updateBulkOperationsBar();
+}
+
+async function saveBulkSelectedTabs() {
+  if (bulkSelectedTabs.size === 0) {
+    return;
+  }
+
+  // Collect all selected tabs
+  const tabs = [];
+  for (const tabId of bulkSelectedTabs) {
+    // Find the tab in collections
+    const collections = await dataService.getCollections();
+    for (const collection of collections) {
+      if (collection.tabs) {
+        const tab = collection.tabs.find(t => t.id === tabId);
+        if (tab) {
+          tabs.push(tab);
+          break;
+        }
+      }
+    }
+  }
+
+  if (tabs.length > 0) {
+    showSaveModal(tabs);
+    deselectAllTabs();
+  }
+}
+
+async function deleteBulkSelectedTabs() {
+  if (bulkSelectedTabs.size === 0) {
+    return;
+  }
+
+  if (!confirm(`Delete ${bulkSelectedTabs.size} selected tab${bulkSelectedTabs.size !== 1 ? 's' : ''}?`)) {
+    return;
+  }
+
+  try {
+    // Group tabs by collection
+    const collections = await dataService.getCollections();
+    const tabsByCollection = new Map();
+
+    for (const tabId of bulkSelectedTabs) {
+      for (const collection of collections) {
+        if (collection.tabs) {
+          const tab = collection.tabs.find(t => t.id === tabId);
+          if (tab) {
+            if (!tabsByCollection.has(collection.id)) {
+              tabsByCollection.set(collection.id, []);
+            }
+            tabsByCollection.get(collection.id).push(tabId);
+            break;
+          }
+        }
+      }
+    }
+
+    // Remove tabs from each collection
+    for (const [collectionId, tabIds] of tabsByCollection) {
+      for (const tabId of tabIds) {
+        await dataService.removeTabFromCollection(tabId, collectionId);
+      }
+    }
+
+    deselectAllTabs();
+    await loadCollections();
+    showNotification(`Deleted ${bulkSelectedTabs.size} tab${bulkSelectedTabs.size !== 1 ? 's' : ''}`);
+  } catch (error) {
+    console.error('Error deleting bulk tabs:', error);
+    alert('Error deleting tabs. Please try again.');
+  }
 }
