@@ -1,113 +1,146 @@
 // New Tab script for Simple Tab Manager
-import dataService from '../services/data.js';
-import dragDropService from '../services/dragdrop.js';
-import searchService from '../services/search.js';
-import searchFilters from '../components/search-filters.js';
+import dataService from "../services/data.js";
+import dragDropService from "../services/dragdrop.js";
+import searchService from "../services/search.js";
+import searchFilters from "../components/search-filters.js";
 
 // DOM Elements
-const collectionsList = document.getElementById('collections-list');
-const tabsContainer = document.getElementById('tabs-container');
-const searchInput = document.getElementById('search-input');
-const searchBtn = document.getElementById('search-btn');
-const searchFiltersContainer = document.createElement('div');
-searchFiltersContainer.className = 'search-filters-container';
-const searchContainer = document.querySelector('.search-container');
+const collectionsList = document.getElementById("collections-list");
+const tabsContainer = document.getElementById("tabs-container");
+const searchInput = document.getElementById("search-input");
+const searchBtn = document.getElementById("search-btn");
+const searchFiltersContainer = document.createElement("div");
+searchFiltersContainer.className = "search-filters-container";
+const searchContainer = document.querySelector(".search-container");
 searchContainer.appendChild(searchFiltersContainer);
-const syncBtn = document.getElementById('sync-btn');
-const settingsBtn = document.getElementById('settings-btn');
-const saveAllTabsBtn = document.getElementById('save-all-tabs-btn');
-const newCollectionBtn = document.getElementById('new-collection-btn');
-const newWorkspaceBtn = document.getElementById('new-workspace-btn');
-const workspacesList = document.getElementById('workspaces-list');
-const collectionSpaceSelect = document.getElementById('collection-space');
-const exportDataBtn = document.getElementById('export-data-btn');
-const importDataBtn = document.getElementById('import-data-btn');
-const importDataFile = document.getElementById('import-data-file');
-
+const syncBtn = document.getElementById("sync-btn");
+const settingsBtn = document.getElementById("settings-btn");
+const saveAllTabsBtn = document.getElementById("save-all-tabs-btn");
+const newCollectionBtn = document.getElementById("new-collection-btn");
+const newWorkspaceBtn = document.getElementById("new-workspace-btn");
+const workspacesList = document.getElementById("workspaces-list");
+const collectionSpaceSelect = document.getElementById("collection-space");
+const exportDataBtn = document.getElementById("export-data-btn");
+const importDataBtn = document.getElementById("import-data-btn");
+const importDataFile = document.getElementById("import-data-file");
 
 // Save Collection Modal Elements
-const newCollectionOption = document.getElementById('new-collection-option');
-const existingCollectionOption = document.getElementById('existing-collection-option');
-const newCollectionForm = document.getElementById('new-collection-form');
-const existingCollectionForm = document.getElementById('existing-collection-form');
-const existingCollectionSelect = document.getElementById('existing-collection-select');
+const newCollectionOption = document.getElementById("new-collection-option");
+const existingCollectionOption = document.getElementById(
+  "existing-collection-option"
+);
+const newCollectionForm = document.getElementById("new-collection-form");
+const existingCollectionForm = document.getElementById(
+  "existing-collection-form"
+);
+const existingCollectionSelect = document.getElementById(
+  "existing-collection-select"
+);
 
 // Tabs Pane Elements
-const tabsPane = document.getElementById('tabs-pane');
-const tabsToggleBtn = document.getElementById('tabs-toggle-btn');
-const closeTabsPaneBtn = document.getElementById('close-tabs-pane');
-const tabsCount = document.querySelector('.tabs-count');
-const tabsToggleIcon = document.querySelector('.tabs-toggle-icon');
+const tabsPane = document.getElementById("tabs-pane");
+const tabsToggleBtn = document.getElementById("tabs-toggle-btn");
+const closeTabsPaneBtn = document.getElementById("close-tabs-pane");
+const tabsCount = document.querySelector(".tabs-count");
+const tabsToggleIcon = document.querySelector(".tabs-toggle-icon");
 
 // Sidebar elements
-const sidebar = document.querySelector('.sidebar');
-const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebar = document.querySelector(".sidebar");
+const sidebarToggle = document.getElementById("sidebar-toggle");
 
 // Modals
-const saveCollectionModal = document.getElementById('save-collection-modal');
-const settingsModal = document.getElementById('settings-modal');
-const workspaceModal = document.getElementById('workspace-modal');
-const renameWorkspaceModal = document.getElementById('rename-workspace-modal');
-const deleteWorkspaceModal = document.getElementById('delete-workspace-modal');
-const renameCollectionModal = document.getElementById('rename-collection-modal');
-const deleteCollectionModal = document.getElementById('delete-collection-modal');
+const saveCollectionModal = document.getElementById("save-collection-modal");
+const settingsModal = document.getElementById("settings-modal");
+const workspaceModal = document.getElementById("workspace-modal");
+const renameWorkspaceModal = document.getElementById("rename-workspace-modal");
+const deleteWorkspaceModal = document.getElementById("delete-workspace-modal");
+const renameCollectionModal = document.getElementById(
+  "rename-collection-modal"
+);
+const deleteCollectionModal = document.getElementById(
+  "delete-collection-modal"
+);
 
 // Save Collection Modal
-const collectionNameInput = document.getElementById('collection-name');
-const selectedTabsList = document.getElementById('selected-tabs');
-const cancelSaveBtn = document.getElementById('cancel-save');
-const confirmSaveBtn = document.getElementById('confirm-save');
+const collectionNameInput = document.getElementById("collection-name");
+const selectedTabsList = document.getElementById("selected-tabs");
+const cancelSaveBtn = document.getElementById("cancel-save");
+const confirmSaveBtn = document.getElementById("confirm-save");
 
 // Settings Modal
-const themeSelect = document.getElementById('theme-select');
-const autoSaveEnabledCheck = document.getElementById('auto-save-enabled');
-const cancelSettingsBtn = document.getElementById('cancel-settings');
-const saveSettingsBtn = document.getElementById('save-settings');
-
-
+const themeSelect = document.getElementById("theme-select");
+const autoSaveEnabledCheck = document.getElementById("auto-save-enabled");
+const cancelSettingsBtn = document.getElementById("cancel-settings");
+const saveSettingsBtn = document.getElementById("save-settings");
 
 // Workspace Modal
-const workspaceNameInput = document.getElementById('workspace-name');
-const workspaceColorInput = document.getElementById('workspace-color');
-const cancelWorkspaceBtn = document.getElementById('cancel-workspace');
-const confirmWorkspaceBtn = document.getElementById('confirm-workspace');
+const workspaceNameInput = document.getElementById("workspace-name");
+const workspaceColorInput = document.getElementById("workspace-color");
+const cancelWorkspaceBtn = document.getElementById("cancel-workspace");
+const confirmWorkspaceBtn = document.getElementById("confirm-workspace");
 
 // Rename Workspace Modal
-const renameWorkspaceNameInput = document.getElementById('rename-workspace-name');
-const renameWorkspaceColorInput = document.getElementById('rename-workspace-color');
-const cancelRenameWorkspaceBtn = document.getElementById('cancel-rename-workspace');
-const confirmRenameWorkspaceBtn = document.getElementById('confirm-rename-workspace');
+const renameWorkspaceNameInput = document.getElementById(
+  "rename-workspace-name"
+);
+const renameWorkspaceColorInput = document.getElementById(
+  "rename-workspace-color"
+);
+const cancelRenameWorkspaceBtn = document.getElementById(
+  "cancel-rename-workspace"
+);
+const confirmRenameWorkspaceBtn = document.getElementById(
+  "confirm-rename-workspace"
+);
 
 // Delete Workspace Modal
-const migrateToWorkspaceSelect = document.getElementById('migrate-to-workspace');
-const workspaceCollectionsInfo = document.getElementById('workspace-collections-info');
-const cancelDeleteWorkspaceBtn = document.getElementById('cancel-delete-workspace');
-const confirmDeleteWorkspaceBtn = document.getElementById('confirm-delete-workspace');
+const migrateToWorkspaceSelect = document.getElementById(
+  "migrate-to-workspace"
+);
+const workspaceCollectionsInfo = document.getElementById(
+  "workspace-collections-info"
+);
+const cancelDeleteWorkspaceBtn = document.getElementById(
+  "cancel-delete-workspace"
+);
+const confirmDeleteWorkspaceBtn = document.getElementById(
+  "confirm-delete-workspace"
+);
 
 // Rename Collection Modal
-const renameCollectionNameInput = document.getElementById('rename-collection-name');
-const cancelRenameCollectionBtn = document.getElementById('cancel-rename-collection');
-const confirmRenameCollectionBtn = document.getElementById('confirm-rename-collection');
+const renameCollectionNameInput = document.getElementById(
+  "rename-collection-name"
+);
+const cancelRenameCollectionBtn = document.getElementById(
+  "cancel-rename-collection"
+);
+const confirmRenameCollectionBtn = document.getElementById(
+  "confirm-rename-collection"
+);
 
 // Delete Collection Modal
-const collectionTabsInfo = document.getElementById('collection-tabs-info');
-const cancelDeleteCollectionBtn = document.getElementById('cancel-delete-collection');
-const confirmDeleteCollectionBtn = document.getElementById('confirm-delete-collection');
+const collectionTabsInfo = document.getElementById("collection-tabs-info");
+const cancelDeleteCollectionBtn = document.getElementById(
+  "cancel-delete-collection"
+);
+const confirmDeleteCollectionBtn = document.getElementById(
+  "confirm-delete-collection"
+);
 
 // Bulk Operations
-const bulkOperationsBar = document.getElementById('bulk-operations-bar');
-const bulkSelectedCount = document.getElementById('bulk-selected-count');
-const bulkDeselectAllBtn = document.getElementById('bulk-deselect-all');
-const bulkSaveTabsBtn = document.getElementById('bulk-save-tabs');
-const bulkDeleteTabsBtn = document.getElementById('bulk-delete-tabs');
+const bulkOperationsBar = document.getElementById("bulk-operations-bar");
+const bulkSelectedCount = document.getElementById("bulk-selected-count");
+const bulkDeselectAllBtn = document.getElementById("bulk-deselect-all");
+const bulkSaveTabsBtn = document.getElementById("bulk-save-tabs");
+const bulkDeleteTabsBtn = document.getElementById("bulk-delete-tabs");
 
 // State
 let currentTabs = [];
 let selectedTabs = [];
-let activeWorkspace = 'personal';
+let activeWorkspace = "personal";
 let userPreferences = {
-  theme: 'light',
-  autoSaveEnabled: true
+  theme: "light",
+  autoSaveEnabled: true,
 };
 let isSearchActive = false;
 let searchResults = [];
@@ -117,13 +150,62 @@ let bulkSelectedTabs = new Set();
 let isBulkSelectMode = false;
 
 // Initialize
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   try {
+    // If not authenticated, redirect to auth page
+    const sessionResp = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: "authGetSession" }, (r) =>
+        resolve(r)
+      );
+    });
+    const signedIn = !!sessionResp?.data?.session?.user;
+    if (!signedIn) {
+      window.location.href = chrome.runtime.getURL(
+        "app/pages/auth.html#signin"
+      );
+      return;
+    }
+    // Update header user UI
+    const userNameEl = document.getElementById('user-name');
+    const userAvatarEl = document.getElementById('user-avatar');
+    const userBtn = document.getElementById('user-btn');
+    const userMenu = document.getElementById('user-menu');
+    const userProfile = document.getElementById('user-profile');
+    const logoutLink = document.getElementById('logout-link');
+    const user = sessionResp?.data?.session?.user;
+    const displayName = (user?.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user?.email || 'User';
+    if (userNameEl) userNameEl.textContent = displayName;
+    if (userAvatarEl) userAvatarEl.textContent = (displayName || '?').trim().charAt(0).toUpperCase();
+
+    if (userBtn && userProfile) {
+      userBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = userProfile.classList.contains('open');
+        userProfile.classList.toggle('open', !isOpen);
+        userBtn.setAttribute('aria-expanded', String(!isOpen));
+        if (userMenu) userMenu.setAttribute('aria-hidden', String(isOpen));
+      });
+      document.addEventListener('click', (e) => {
+        if (!userProfile.contains(e.target)) {
+          userProfile.classList.remove('open');
+          userBtn.setAttribute('aria-expanded', 'false');
+          if (userMenu) userMenu.setAttribute('aria-hidden', 'true');
+        }
+      });
+    }
+    if (logoutLink) {
+      logoutLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        chrome.runtime.sendMessage({ action: 'authLogout' }, () => {
+          window.location.href = chrome.runtime.getURL('app/pages/auth.html#signin');
+        });
+      });
+    }
+
+
     // Add click event listener to document to close tabs pane when clicking outside
-    document.addEventListener('click', (e) => {
-      // Check if tabs pane is open
-      if (tabsPane.classList.contains('open')) {
-        // Check if the click is outside the tabs pane and not on the toggle button
+    document.addEventListener("click", (e) => {
+      if (tabsPane.classList.contains("open")) {
         if (!tabsPane.contains(e.target) && !tabsToggleBtn.contains(e.target)) {
           closeTabsPane();
         }
@@ -148,19 +230,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
 
     // Initialize search filters
-    await searchFilters.init(searchFiltersContainer, searchInput, (searchData) => {
-      searchTabsAndCollections(searchData.query);
-    });
+    await searchFilters.init(
+      searchFiltersContainer,
+      searchInput,
+      (searchData) => {
+        searchTabsAndCollections(searchData.query);
+      }
+    );
 
     // Listen for data changes from drag and drop operations
-    document.addEventListener('sim-data-change', async () => {
+    document.addEventListener("sim-data-change", async () => {
       await loadCollections();
     });
 
     // Listen for tab moved events
-    document.addEventListener('sim-tab-moved', (e) => {
+    document.addEventListener("sim-tab-moved", (e) => {
       const { sourceCollection, targetCollection } = e.detail;
-      showNotification(`Tab moved from "${sourceCollection}" to "${targetCollection}"`);
+      showNotification(
+        `Tab moved from "${sourceCollection}" to "${targetCollection}"`
+      );
     });
 
     // Listen for tab updates
@@ -175,12 +263,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Only listen for completed tab updates to avoid excessive calls
     chrome.tabs.onUpdated.addListener((_, changeInfo) => {
       // Only reload tabs when the tab has completed loading or the URL has changed
-      if (changeInfo.status === 'complete' || changeInfo.url) {
+      if (changeInfo.status === "complete" || changeInfo.url) {
         loadOpenTabs();
       }
     });
   } catch (error) {
-    console.error('Error initializing app:', error);
+    console.error("Error initializing app:", error);
   }
 });
 
@@ -191,16 +279,18 @@ async function loadUserPreferences() {
     userPreferences = settings;
 
     // Apply theme
-    if (userPreferences.theme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else if (userPreferences.theme === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-    } else if (userPreferences.theme === 'system') {
-      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    if (userPreferences.theme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else if (userPreferences.theme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else if (userPreferences.theme === "system") {
+      const prefersDarkScheme = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      );
       if (prefersDarkScheme.matches) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.setAttribute("data-theme", "dark");
       } else {
-        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute("data-theme", "light");
       }
     }
 
@@ -208,7 +298,7 @@ async function loadUserPreferences() {
     themeSelect.value = userPreferences.theme;
     autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
   } catch (error) {
-    console.error('Error loading user preferences:', error);
+    console.error("Error loading user preferences:", error);
   }
 }
 
@@ -223,56 +313,56 @@ async function loadSpaces() {
     // Update collection space select
     updateCollectionSpaceSelect(spaces);
   } catch (error) {
-    console.error('Error loading spaces:', error);
+    console.error("Error loading spaces:", error);
   }
 }
 
 // Render workspaces
 function renderWorkspaces(spaces) {
-  workspacesList.innerHTML = '';
+  workspacesList.innerHTML = "";
 
-  spaces.forEach(space => {
-    const workspaceItem = document.createElement('div');
-    workspaceItem.className = 'sidebar-item';
+  spaces.forEach((space) => {
+    const workspaceItem = document.createElement("div");
+    workspaceItem.className = "sidebar-item";
     workspaceItem.dataset.spaceId = space.id;
     if (space.id === activeWorkspace) {
-      workspaceItem.classList.add('active');
+      workspaceItem.classList.add("active");
     }
 
-    const nameSpan = document.createElement('span');
+    const nameSpan = document.createElement("span");
     nameSpan.textContent = space.name;
     workspaceItem.appendChild(nameSpan);
 
     // Add action buttons
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'workspace-actions';
+    const actionsDiv = document.createElement("div");
+    actionsDiv.className = "workspace-actions";
 
     // Rename button
-    const renameBtn = document.createElement('button');
-    renameBtn.className = 'workspace-action-btn';
+    const renameBtn = document.createElement("button");
+    renameBtn.className = "workspace-action-btn";
     renameBtn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
       </svg>
     `;
-    renameBtn.title = 'Rename workspace';
-    renameBtn.addEventListener('click', (e) => {
+    renameBtn.title = "Rename workspace";
+    renameBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       showRenameWorkspaceModal(space);
     });
 
     // Delete button
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'workspace-action-btn delete';
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "workspace-action-btn delete";
     deleteBtn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
       </svg>
     `;
-    deleteBtn.title = 'Delete workspace';
-    deleteBtn.addEventListener('click', (e) => {
+    deleteBtn.title = "Delete workspace";
+    deleteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       showDeleteWorkspaceModal(space);
     });
@@ -281,9 +371,9 @@ function renderWorkspaces(spaces) {
     actionsDiv.appendChild(deleteBtn);
     workspaceItem.appendChild(actionsDiv);
 
-    workspaceItem.addEventListener('click', (e) => {
+    workspaceItem.addEventListener("click", (e) => {
       // Only set active workspace if not clicking on action buttons
-      if (!e.target.closest('.workspace-actions')) {
+      if (!e.target.closest(".workspace-actions")) {
         setActiveWorkspace(space.id);
       }
     });
@@ -297,10 +387,10 @@ function renderWorkspaces(spaces) {
 
 // Update collection space select
 function updateCollectionSpaceSelect(spaces) {
-  collectionSpaceSelect.innerHTML = '';
+  collectionSpaceSelect.innerHTML = "";
 
-  spaces.forEach(space => {
-    const option = document.createElement('option');
+  spaces.forEach((space) => {
+    const option = document.createElement("option");
     option.value = space.id;
     option.textContent = space.name;
     collectionSpaceSelect.appendChild(option);
@@ -319,10 +409,12 @@ async function loadCollections() {
     }
 
     // Filter collections by active workspace
-    const collections = await dataService.getCollectionsBySpace(activeWorkspace);
+    const collections = await dataService.getCollectionsBySpace(
+      activeWorkspace
+    );
     renderCollections(collections);
   } catch (error) {
-    console.error('Error loading collections:', error);
+    console.error("Error loading collections:", error);
   }
 }
 
@@ -330,23 +422,23 @@ async function loadCollections() {
 function loadOpenTabs() {
   chrome.tabs.query({}, (tabs) => {
     // Filter out the current tab (new tab page)
-    currentTabs = tabs.filter(tab => !tab.url.includes('chrome://newtab'));
+    currentTabs = tabs.filter((tab) => !tab.url.includes("chrome://newtab"));
     renderOpenTabs();
 
     // If there are tabs, show the tabs pane toggle button
     if (currentTabs.length > 0) {
-      tabsToggleBtn.style.display = 'flex';
+      tabsToggleBtn.style.display = "flex";
     } else {
-      tabsToggleBtn.style.display = 'none';
+      tabsToggleBtn.style.display = "none";
     }
   });
 }
 
 // Render collections
 function renderCollections(collections) {
-  collectionsList.innerHTML = '';
+  collectionsList.innerHTML = "";
 
-  collections.forEach(collection => {
+  collections.forEach((collection) => {
     const collectionGroup = createCollectionGroup(collection);
     collectionsList.appendChild(collectionGroup);
   });
@@ -354,58 +446,60 @@ function renderCollections(collections) {
 
 // Create collection group element
 function createCollectionGroup(collection) {
-  const group = document.createElement('div');
-  group.className = 'collection-group';
+  const group = document.createElement("div");
+  group.className = "collection-group";
   group.dataset.collectionId = collection.id;
 
   // Find the workspace color
   const spaceId = collection.spaceId || collection.workspace;
-  let spaceColor = '#ff5c8d'; // Default color
+  let spaceColor = "#ff5c8d"; // Default color
 
   // Create header
-  const header = document.createElement('div');
-  header.className = 'collection-header';
+  const header = document.createElement("div");
+  header.className = "collection-header";
 
   // Left side of header
-  const headerLeft = document.createElement('div');
-  headerLeft.className = 'collection-header-left';
+  const headerLeft = document.createElement("div");
+  headerLeft.className = "collection-header-left";
 
-  const title = document.createElement('div');
-  title.className = 'collection-title';
+  const title = document.createElement("div");
+  title.className = "collection-title";
   title.textContent = collection.name;
 
   headerLeft.appendChild(title);
 
   // Right side of header
-  const headerRight = document.createElement('div');
-  headerRight.className = 'collection-header-right';
+  const headerRight = document.createElement("div");
+  headerRight.className = "collection-header-right";
 
-  const count = document.createElement('div');
-  count.className = 'collection-count';
-  count.textContent = `${collection.tabs ? collection.tabs.length : 0} tab${collection.tabs && collection.tabs.length !== 1 ? 's' : ''}`;
+  const count = document.createElement("div");
+  count.className = "collection-count";
+  count.textContent = `${collection.tabs ? collection.tabs.length : 0} tab${
+    collection.tabs && collection.tabs.length !== 1 ? "s" : ""
+  }`;
 
   // Add action buttons
-  const actionsDiv = document.createElement('div');
-  actionsDiv.className = 'collection-actions';
+  const actionsDiv = document.createElement("div");
+  actionsDiv.className = "collection-actions";
 
   // Rename button
-  const renameBtn = document.createElement('button');
-  renameBtn.className = 'collection-action-btn';
+  const renameBtn = document.createElement("button");
+  renameBtn.className = "collection-action-btn";
   renameBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
     </svg>
   `;
-  renameBtn.title = 'Rename collection';
-  renameBtn.addEventListener('click', (e) => {
+  renameBtn.title = "Rename collection";
+  renameBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showRenameCollectionModal(collection);
   });
 
   // Deduplicate button
-  const dedupeBtn = document.createElement('button');
-  dedupeBtn.className = 'collection-action-btn dedupe';
+  const dedupeBtn = document.createElement("button");
+  dedupeBtn.className = "collection-action-btn dedupe";
   dedupeBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
@@ -413,23 +507,23 @@ function createCollectionGroup(collection) {
       <line x1="9" y1="12" x2="15" y2="12"></line>
     </svg>
   `;
-  dedupeBtn.title = 'Remove duplicate tabs';
-  dedupeBtn.addEventListener('click', (e) => {
+  dedupeBtn.title = "Remove duplicate tabs";
+  dedupeBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     deduplicateTabs(collection.id);
   });
 
   // Delete button
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'collection-action-btn delete';
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "collection-action-btn delete";
   deleteBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="3 6 5 6 21 6"></polyline>
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
   `;
-  deleteBtn.title = 'Delete collection';
-  deleteBtn.addEventListener('click', (e) => {
+  deleteBtn.title = "Delete collection";
+  deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showDeleteCollectionModal(collection);
   });
@@ -438,8 +532,8 @@ function createCollectionGroup(collection) {
   actionsDiv.appendChild(dedupeBtn);
   actionsDiv.appendChild(deleteBtn);
 
-  const toggleIcon = document.createElement('div');
-  toggleIcon.className = 'collection-toggle-icon';
+  const toggleIcon = document.createElement("div");
+  toggleIcon.className = "collection-toggle-icon";
   toggleIcon.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="6 9 12 15 18 9"></polyline>
@@ -454,19 +548,19 @@ function createCollectionGroup(collection) {
   header.appendChild(headerRight);
 
   // Create content container
-  const content = document.createElement('div');
-  content.className = 'collection-content';
+  const content = document.createElement("div");
+  content.className = "collection-content";
 
   // Add tabs to content
   if (collection.tabs && collection.tabs.length > 0) {
-    collection.tabs.forEach(tab => {
+    collection.tabs.forEach((tab) => {
       const tabCard = createCollectionTabCard(tab, collection.id);
       content.appendChild(tabCard);
     });
   } else {
-    const emptyMessage = document.createElement('div');
-    emptyMessage.className = 'empty-message';
-    emptyMessage.textContent = 'No tabs in this collection';
+    const emptyMessage = document.createElement("div");
+    emptyMessage.className = "empty-message";
+    emptyMessage.textContent = "No tabs in this collection";
     content.appendChild(emptyMessage);
   }
 
@@ -475,7 +569,7 @@ function createCollectionGroup(collection) {
 
   // Set the border color based on workspace
   if (spaceId) {
-    dataService.getSpace(spaceId).then(space => {
+    dataService.getSpace(spaceId).then((space) => {
       if (space) {
         spaceColor = space.color;
         header.style.borderLeftColor = spaceColor;
@@ -484,9 +578,9 @@ function createCollectionGroup(collection) {
   }
 
   // Toggle collection collapse when header is clicked
-  header.addEventListener('click', (e) => {
+  header.addEventListener("click", (e) => {
     // Don't toggle if clicking on action buttons
-    if (!e.target.closest('.collection-actions')) {
+    if (!e.target.closest(".collection-actions")) {
       toggleCollectionCollapse(group);
     }
   });
@@ -499,17 +593,17 @@ function createCollectionGroup(collection) {
 
 // Create tab card for collection
 function createCollectionTabCard(tab, collectionId) {
-  const card = document.createElement('div');
-  card.className = 'collection-tab-card';
+  const card = document.createElement("div");
+  card.className = "collection-tab-card";
   card.dataset.tabId = tab.id;
   card.dataset.collectionId = collectionId;
 
   // Create icon section
-  const iconSection = document.createElement('div');
-  iconSection.className = 'collection-tab-icon';
+  const iconSection = document.createElement("div");
+  iconSection.className = "collection-tab-icon";
 
-  const favicon = document.createElement('img');
-  favicon.className = 'collection-tab-favicon';
+  const favicon = document.createElement("img");
+  favicon.className = "collection-tab-favicon";
 
   // Set a default icon first to ensure we always have something
   favicon.src = getDefaultIconPath();
@@ -535,35 +629,35 @@ function createCollectionTabCard(tab, collectionId) {
   iconSection.appendChild(favicon);
 
   // Create info section
-  const infoSection = document.createElement('div');
-  infoSection.className = 'collection-tab-info';
+  const infoSection = document.createElement("div");
+  infoSection.className = "collection-tab-info";
 
-  const title = document.createElement('div');
-  title.className = 'collection-tab-title';
+  const title = document.createElement("div");
+  title.className = "collection-tab-title";
   title.textContent = tab.title;
 
   // Extract domain for subtitle
-  let subtitle = '';
+  let subtitle = "";
   try {
     const url = new URL(tab.url);
-    subtitle = url.hostname.replace('www.', '');
+    subtitle = url.hostname.replace("www.", "");
   } catch (e) {
-    subtitle = 'Unknown domain';
+    subtitle = "Unknown domain";
   }
 
-  const subtitleElement = document.createElement('div');
-  subtitleElement.className = 'collection-tab-subtitle';
+  const subtitleElement = document.createElement("div");
+  subtitleElement.className = "collection-tab-subtitle";
   subtitleElement.textContent = subtitle;
 
   infoSection.appendChild(title);
   infoSection.appendChild(subtitleElement);
 
   // Create actions
-  const actions = document.createElement('div');
-  actions.className = 'collection-tab-actions';
+  const actions = document.createElement("div");
+  actions.className = "collection-tab-actions";
 
-  const openBtn = document.createElement('button');
-  openBtn.className = 'collection-tab-btn';
+  const openBtn = document.createElement("button");
+  openBtn.className = "collection-tab-btn";
   openBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -571,22 +665,22 @@ function createCollectionTabCard(tab, collectionId) {
       <line x1="10" y1="14" x2="21" y2="3"></line>
     </svg>
   `;
-  openBtn.title = 'Open tab';
-  openBtn.addEventListener('click', (e) => {
+  openBtn.title = "Open tab";
+  openBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     openTabFromCollection(tab);
   });
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'collection-tab-btn delete';
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "collection-tab-btn delete";
   deleteBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="3 6 5 6 21 6"></polyline>
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
   `;
-  deleteBtn.title = 'Remove from collection';
-  deleteBtn.addEventListener('click', (e) => {
+  deleteBtn.title = "Remove from collection";
+  deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     removeTabFromCollection(tab.id, collectionId);
     card.remove();
@@ -601,7 +695,7 @@ function createCollectionTabCard(tab, collectionId) {
   card.appendChild(actions);
 
   // Open tab when card is clicked
-  card.addEventListener('click', () => {
+  card.addEventListener("click", () => {
     openTabFromCollection(tab);
   });
 
@@ -613,9 +707,9 @@ function createCollectionTabCard(tab, collectionId) {
 
 // Render open tabs
 function renderOpenTabs() {
-  tabsContainer.innerHTML = '';
+  tabsContainer.innerHTML = "";
 
-  currentTabs.forEach(tab => {
+  currentTabs.forEach((tab) => {
     const tabCard = createTabCard(tab);
     tabsContainer.appendChild(tabCard);
   });
@@ -626,12 +720,12 @@ function renderOpenTabs() {
 
 // Create tab card element
 function createTabCard(tab) {
-  const card = document.createElement('div');
-  card.className = 'tab-card';
+  const card = document.createElement("div");
+  card.className = "tab-card";
   card.dataset.tabId = tab.id;
 
-  const favicon = document.createElement('img');
-  favicon.className = 'tab-card-favicon';
+  const favicon = document.createElement("img");
+  favicon.className = "tab-card-favicon";
 
   // Set a default icon first to ensure we always have something
   favicon.src = getDefaultIconPath();
@@ -654,15 +748,15 @@ function createTabCard(tab) {
     favicon.src = getDefaultIconPath();
   };
 
-  const title = document.createElement('div');
-  title.className = 'tab-card-title';
+  const title = document.createElement("div");
+  title.className = "tab-card-title";
   title.textContent = tab.title;
 
-  const actions = document.createElement('div');
-  actions.className = 'tab-card-actions';
+  const actions = document.createElement("div");
+  actions.className = "tab-card-actions";
 
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'tab-card-btn';
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "tab-card-btn";
   saveBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -670,22 +764,22 @@ function createTabCard(tab) {
       <polyline points="7 3 7 8 15 8"></polyline>
     </svg>
   `;
-  saveBtn.title = 'Save tab';
-  saveBtn.addEventListener('click', (e) => {
+  saveBtn.title = "Save tab";
+  saveBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showSaveModal([tab]);
   });
 
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'tab-card-btn close';
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "tab-card-btn close";
   closeBtn.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   `;
-  closeBtn.title = 'Close tab';
-  closeBtn.addEventListener('click', (e) => {
+  closeBtn.title = "Close tab";
+  closeBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     chrome.tabs.remove(tab.id);
     card.remove();
@@ -698,7 +792,7 @@ function createTabCard(tab) {
   card.appendChild(title);
   card.appendChild(actions);
 
-  card.addEventListener('click', () => {
+  card.addEventListener("click", () => {
     chrome.tabs.update(tab.id, { active: true });
     chrome.windows.update(tab.windowId, { focused: true });
   });
@@ -710,19 +804,19 @@ function createTabCard(tab) {
 // Set up event listeners
 function setupEventListeners() {
   // Search
-  searchInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
+  searchInput.addEventListener("keyup", (e) => {
+    if (e.key === "Enter") {
       searchTabsAndCollections(searchInput.value);
     }
   });
 
-  searchBtn.addEventListener('click', () => {
+  searchBtn.addEventListener("click", () => {
     searchTabsAndCollections(searchInput.value);
   });
 
   // Handle search input changes (debounced)
   let searchTimeout;
-  searchInput.addEventListener('input', () => {
+  searchInput.addEventListener("input", () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
       if (isSearchActive || searchInput.value.trim()) {
@@ -732,64 +826,64 @@ function setupEventListeners() {
   });
 
   // Sync button
-  syncBtn.addEventListener('click', () => {
+  syncBtn.addEventListener("click", () => {
     syncTabs();
   });
 
   // Settings button
-  settingsBtn.addEventListener('click', () => {
+  settingsBtn.addEventListener("click", () => {
     showSettingsModal();
   });
 
   // New collection button
-  newCollectionBtn.addEventListener('click', () => {
+  newCollectionBtn.addEventListener("click", () => {
     showSaveModal([]);
   });
 
   // Save all tabs button
-  saveAllTabsBtn.addEventListener('click', () => {
+  saveAllTabsBtn.addEventListener("click", () => {
     chrome.tabs.query({}, (tabs) => {
       showSaveModal(tabs);
     });
   });
 
   // New workspace button
-  newWorkspaceBtn.addEventListener('click', () => {
+  newWorkspaceBtn.addEventListener("click", () => {
     showWorkspaceModal();
   });
 
   // Cancel save button
-  cancelSaveBtn.addEventListener('click', () => {
+  cancelSaveBtn.addEventListener("click", () => {
     hideSaveModal();
   });
 
   // Confirm save button
-  confirmSaveBtn.addEventListener('click', () => {
+  confirmSaveBtn.addEventListener("click", () => {
     saveCollection();
   });
 
   // Cancel settings button
-  cancelSettingsBtn.addEventListener('click', () => {
+  cancelSettingsBtn.addEventListener("click", () => {
     hideSettingsModal();
   });
 
   // Save settings button
-  saveSettingsBtn.addEventListener('click', () => {
+  saveSettingsBtn.addEventListener("click", () => {
     saveSettings();
   });
 
   // Export data button
-  exportDataBtn.addEventListener('click', () => {
+  exportDataBtn.addEventListener("click", () => {
     exportData();
   });
 
   // Import data button
-  importDataBtn.addEventListener('click', () => {
+  importDataBtn.addEventListener("click", () => {
     importDataFile.click();
   });
 
   // Import data file change
-  importDataFile.addEventListener('change', (e) => {
+  importDataFile.addEventListener("change", (e) => {
     if (e.target.files.length > 0) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -799,8 +893,8 @@ function setupEventListeners() {
           const jsonData = event.target.result;
           importData(jsonData);
         } catch (error) {
-          console.error('Error reading file:', error);
-          alert('Error reading file. Please try again.');
+          console.error("Error reading file:", error);
+          alert("Error reading file. Please try again.");
         }
       };
 
@@ -808,94 +902,90 @@ function setupEventListeners() {
     }
   });
 
-
-
   // Sidebar collapse/expand
   if (sidebarToggle && sidebar) {
-    sidebarToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
+    sidebarToggle.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed");
     });
   }
 
   // Tabs pane toggle button
-  tabsToggleBtn.addEventListener('click', () => {
+  tabsToggleBtn.addEventListener("click", () => {
     toggleTabsPane();
   });
 
   // Close tabs pane button
-  closeTabsPaneBtn.addEventListener('click', () => {
+  closeTabsPaneBtn.addEventListener("click", () => {
     closeTabsPane();
   });
 
-
-
   // Cancel workspace button
-  cancelWorkspaceBtn.addEventListener('click', () => {
+  cancelWorkspaceBtn.addEventListener("click", () => {
     hideWorkspaceModal();
   });
 
   // Confirm workspace button
-  confirmWorkspaceBtn.addEventListener('click', () => {
+  confirmWorkspaceBtn.addEventListener("click", () => {
     createWorkspace();
   });
 
   // Rename workspace modal buttons
-  cancelRenameWorkspaceBtn.addEventListener('click', () => {
+  cancelRenameWorkspaceBtn.addEventListener("click", () => {
     hideRenameWorkspaceModal();
   });
 
-  confirmRenameWorkspaceBtn.addEventListener('click', () => {
+  confirmRenameWorkspaceBtn.addEventListener("click", () => {
     renameWorkspace();
   });
 
   // Delete workspace modal buttons
-  cancelDeleteWorkspaceBtn.addEventListener('click', () => {
+  cancelDeleteWorkspaceBtn.addEventListener("click", () => {
     hideDeleteWorkspaceModal();
   });
 
-  confirmDeleteWorkspaceBtn.addEventListener('click', () => {
+  confirmDeleteWorkspaceBtn.addEventListener("click", () => {
     deleteWorkspace();
   });
 
   // Rename collection modal buttons
-  cancelRenameCollectionBtn.addEventListener('click', () => {
+  cancelRenameCollectionBtn.addEventListener("click", () => {
     hideRenameCollectionModal();
   });
 
-  confirmRenameCollectionBtn.addEventListener('click', () => {
+  confirmRenameCollectionBtn.addEventListener("click", () => {
     renameCollection();
   });
 
   // Delete collection modal buttons
-  cancelDeleteCollectionBtn.addEventListener('click', () => {
+  cancelDeleteCollectionBtn.addEventListener("click", () => {
     hideDeleteCollectionModal();
   });
 
-  confirmDeleteCollectionBtn.addEventListener('click', () => {
+  confirmDeleteCollectionBtn.addEventListener("click", () => {
     deleteCollection();
   });
 
   // Bulk operations buttons
-  bulkDeselectAllBtn.addEventListener('click', () => {
+  bulkDeselectAllBtn.addEventListener("click", () => {
     deselectAllTabs();
   });
 
-  bulkSaveTabsBtn.addEventListener('click', () => {
+  bulkSaveTabsBtn.addEventListener("click", () => {
     saveBulkSelectedTabs();
   });
 
-  bulkDeleteTabsBtn.addEventListener('click', () => {
+  bulkDeleteTabsBtn.addEventListener("click", () => {
     deleteBulkSelectedTabs();
   });
 
   // Setup workspace items click events
-  const workspaceItems = workspacesList.querySelectorAll('.sidebar-item');
-  workspaceItems.forEach(item => {
-    item.addEventListener('click', () => {
+  const workspaceItems = workspacesList.querySelectorAll(".sidebar-item");
+  workspaceItems.forEach((item) => {
+    item.addEventListener("click", () => {
       // Remove active class from all items
-      workspaceItems.forEach(i => i.classList.remove('active'));
+      workspaceItems.forEach((i) => i.classList.remove("active"));
       // Add active class to clicked item
-      item.classList.add('active');
+      item.classList.add("active");
       // Set active workspace
       activeWorkspace = item.dataset.spaceId;
       // Load collections for this workspace
@@ -904,12 +994,12 @@ function setupEventListeners() {
   });
 
   // Setup drag and drop for collections list
-  collectionsList.addEventListener('dragover', (e) => {
+  collectionsList.addEventListener("dragover", (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
   });
 
-  collectionsList.addEventListener('drop', (e) => {
+  collectionsList.addEventListener("drop", (e) => {
     e.preventDefault();
     // Handle collection drop (could reorder or move to different workspace)
     // Collection dropped
@@ -918,7 +1008,10 @@ function setupEventListeners() {
 
 // Search tabs and collections
 async function searchTabsAndCollections(query) {
-  if (!query.trim() && Object.keys(searchFilters.getActiveFilters().filters).length === 0) {
+  if (
+    !query.trim() &&
+    Object.keys(searchFilters.getActiveFilters().filters).length === 0
+  ) {
     // If search is empty and no filters are active, exit search mode
     isSearchActive = false;
     loadCollections();
@@ -936,7 +1029,7 @@ async function searchTabsAndCollections(query) {
     renderSearchResults();
     return;
   } catch (error) {
-    console.error('Error searching tabs and collections:', error);
+    console.error("Error searching tabs and collections:", error);
   }
 
   // If no results found and we have a query (not just filters), search the web
@@ -948,17 +1041,19 @@ async function searchTabsAndCollections(query) {
 // Search the web
 function searchWeb(query) {
   // Open a new tab with the search query
-  chrome.tabs.create({ url: `https://www.google.com/search?q=${encodeURIComponent(query)}` });
+  chrome.tabs.create({
+    url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+  });
 }
 
 // Render search results
 function renderSearchResults() {
   // Clear collections list
-  collectionsList.innerHTML = '';
+  collectionsList.innerHTML = "";
 
   // Create search results header
-  const searchHeader = document.createElement('div');
-  searchHeader.className = 'search-results-header';
+  const searchHeader = document.createElement("div");
+  searchHeader.className = "search-results-header";
   searchHeader.innerHTML = `
     <h2>Search Results</h2>
     <span class="result-count">${searchResults.length} results</span>
@@ -972,36 +1067,38 @@ function renderSearchResults() {
   `;
 
   // Add clear search button event
-  searchHeader.querySelector('.clear-search-btn').addEventListener('click', () => {
-    searchInput.value = '';
-    searchFilters.clearFilters();
-    isSearchActive = false;
-    loadCollections();
-  });
+  searchHeader
+    .querySelector(".clear-search-btn")
+    .addEventListener("click", () => {
+      searchInput.value = "";
+      searchFilters.clearFilters();
+      isSearchActive = false;
+      loadCollections();
+    });
 
   collectionsList.appendChild(searchHeader);
 
   // Group results by collection
   const resultsByCollection = {};
 
-  searchResults.forEach(result => {
+  searchResults.forEach((result) => {
     const collectionId = result.collection.id;
     if (!resultsByCollection[collectionId]) {
       resultsByCollection[collectionId] = {
         collection: result.collection,
-        tabs: []
+        tabs: [],
       };
     }
     resultsByCollection[collectionId].tabs.push(result.tab);
   });
 
   // Create a collection card for each group
-  Object.values(resultsByCollection).forEach(group => {
+  Object.values(resultsByCollection).forEach((group) => {
     const collectionCard = createCollectionGroup({
       id: group.collection.id,
       name: group.collection.name,
       tabs: group.tabs,
-      spaceId: group.collection.spaceId
+      spaceId: group.collection.spaceId,
     });
 
     collectionsList.appendChild(collectionCard);
@@ -1009,8 +1106,8 @@ function renderSearchResults() {
 
   // If no results, show empty state
   if (searchResults.length === 0) {
-    const emptyState = document.createElement('div');
-    emptyState.className = 'empty-search-results';
+    const emptyState = document.createElement("div");
+    emptyState.className = "empty-search-results";
     emptyState.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
@@ -1030,52 +1127,53 @@ async function showSaveModal(tabs) {
   selectedTabs = tabs;
 
   // Clear previous data
-  collectionNameInput.value = '';
-  selectedTabsList.innerHTML = '';
+  collectionNameInput.value = "";
+  selectedTabsList.innerHTML = "";
   collectionSpaceSelect.value = activeWorkspace;
 
   // Reset save options
   newCollectionOption.checked = true;
   existingCollectionOption.checked = false;
-  newCollectionForm.style.display = 'block';
-  existingCollectionForm.style.display = 'none';
+  newCollectionForm.style.display = "block";
+  existingCollectionForm.style.display = "none";
 
   // Set up event listeners for the radio buttons
-  newCollectionOption.addEventListener('change', () => {
+  newCollectionOption.addEventListener("change", () => {
     if (newCollectionOption.checked) {
-      newCollectionForm.style.display = 'block';
-      existingCollectionForm.style.display = 'none';
+      newCollectionForm.style.display = "block";
+      existingCollectionForm.style.display = "none";
     }
   });
 
-  existingCollectionOption.addEventListener('change', () => {
+  existingCollectionOption.addEventListener("change", () => {
     if (existingCollectionOption.checked) {
-      newCollectionForm.style.display = 'none';
-      existingCollectionForm.style.display = 'block';
+      newCollectionForm.style.display = "none";
+      existingCollectionForm.style.display = "block";
     }
   });
 
   // Populate existing collections dropdown
-  existingCollectionSelect.innerHTML = '<option value="">Select a collection...</option>';
+  existingCollectionSelect.innerHTML =
+    '<option value="">Select a collection...</option>';
   try {
     const collections = await dataService.getCollections();
-    collections.forEach(collection => {
-      const option = document.createElement('option');
+    collections.forEach((collection) => {
+      const option = document.createElement("option");
       option.value = collection.id;
       option.textContent = collection.name;
       existingCollectionSelect.appendChild(option);
     });
   } catch (error) {
-    console.error('Error loading collections for dropdown:', error);
+    console.error("Error loading collections for dropdown:", error);
   }
 
   // Add selected tabs to the list
-  selectedTabs.forEach(tab => {
-    const tabElement = document.createElement('div');
-    tabElement.className = 'tab-item';
+  selectedTabs.forEach((tab) => {
+    const tabElement = document.createElement("div");
+    tabElement.className = "tab-item";
 
-    const favicon = document.createElement('img');
-    favicon.className = 'tab-favicon';
+    const favicon = document.createElement("img");
+    favicon.className = "tab-favicon";
 
     // Set a default icon first to ensure we always have something
     favicon.src = getDefaultIconPath();
@@ -1098,8 +1196,8 @@ async function showSaveModal(tabs) {
       favicon.src = getDefaultIconPath();
     };
 
-    const title = document.createElement('div');
-    title.className = 'tab-title';
+    const title = document.createElement("div");
+    title.className = "tab-title";
     title.textContent = tab.title;
 
     tabElement.appendChild(favicon);
@@ -1108,40 +1206,36 @@ async function showSaveModal(tabs) {
     selectedTabsList.appendChild(tabElement);
   });
 
-  saveCollectionModal.classList.add('show');
+  saveCollectionModal.classList.add("show");
 }
 
 // Hide save collection modal
 function hideSaveModal() {
-  saveCollectionModal.classList.remove('show');
+  saveCollectionModal.classList.remove("show");
   selectedTabs = [];
 }
 
 // Show settings modal
 function showSettingsModal() {
-  settingsModal.classList.add('show');
+  settingsModal.classList.add("show");
 }
 
 // Hide settings modal
 function hideSettingsModal() {
-  settingsModal.classList.remove('show');
+  settingsModal.classList.remove("show");
 }
-
-
 
 // Show workspace modal
 function showWorkspaceModal() {
-  workspaceModal.classList.add('show');
-  workspaceNameInput.value = '';
-  workspaceColorInput.value = '#ff5c8d';
+  workspaceModal.classList.add("show");
+  workspaceNameInput.value = "";
+  workspaceColorInput.value = "#ff5c8d";
 }
 
 // Hide workspace modal
 function hideWorkspaceModal() {
-  workspaceModal.classList.remove('show');
+  workspaceModal.classList.remove("show");
 }
-
-
 
 // Save collection
 async function saveCollection() {
@@ -1153,12 +1247,12 @@ async function saveCollection() {
     const collectionId = existingCollectionSelect.value;
 
     if (!collectionId) {
-      alert('Please select a collection');
+      alert("Please select a collection");
       return;
     }
 
     if (selectedTabs.length === 0) {
-      alert('No tabs selected');
+      alert("No tabs selected");
       return;
     }
 
@@ -1167,11 +1261,11 @@ async function saveCollection() {
       const existingCollection = await dataService.getCollection(collectionId);
 
       if (!existingCollection) {
-        throw new Error('Collection not found');
+        throw new Error("Collection not found");
       }
 
       // Format tabs for storage
-      const newTabs = selectedTabs.map(tab => {
+      const newTabs = selectedTabs.map((tab) => {
         // Check if favicon is valid
         let favicon = getDefaultIconPath(); // Default fallback
 
@@ -1182,10 +1276,12 @@ async function saveCollection() {
         }
 
         return {
-          id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          id: `tab-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 11)}`,
           url: tab.url,
           title: tab.title,
-          favicon: favicon
+          favicon: favicon,
         };
       });
 
@@ -1202,10 +1298,10 @@ async function saveCollection() {
       hideSaveModal();
 
       // Show success message
-      showNotification('Tabs added to collection successfully');
+      showNotification("Tabs added to collection successfully");
     } catch (error) {
-      console.error('Error adding tabs to collection:', error);
-      alert('Error adding tabs to collection. Please try again.');
+      console.error("Error adding tabs to collection:", error);
+      alert("Error adding tabs to collection. Please try again.");
     }
   } else {
     // Save as new collection
@@ -1213,18 +1309,18 @@ async function saveCollection() {
     const spaceId = collectionSpaceSelect.value;
 
     if (!name) {
-      alert('Please enter a collection name');
+      alert("Please enter a collection name");
       return;
     }
 
     if (selectedTabs.length === 0) {
-      alert('No tabs selected');
+      alert("No tabs selected");
       return;
     }
 
     try {
       // Format tabs for storage
-      const tabs = selectedTabs.map(tab => {
+      const tabs = selectedTabs.map((tab) => {
         // Check if favicon is valid
         let favicon = getDefaultIconPath(); // Default fallback
 
@@ -1235,10 +1331,12 @@ async function saveCollection() {
         }
 
         return {
-          id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          id: `tab-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 11)}`,
           url: tab.url,
           title: tab.title,
-          favicon: favicon
+          favicon: favicon,
         };
       });
 
@@ -1252,22 +1350,20 @@ async function saveCollection() {
       hideSaveModal();
 
       // Show success message
-      showNotification('Collection saved successfully');
+      showNotification("Collection saved successfully");
     } catch (error) {
-      console.error('Error saving collection:', error);
-      alert('Error saving collection. Please try again.');
+      console.error("Error saving collection:", error);
+      alert("Error saving collection. Please try again.");
     }
   }
 }
-
-
 
 // Save settings
 async function saveSettings() {
   try {
     const updatedPreferences = {
       theme: themeSelect.value,
-      autoSaveEnabled: autoSaveEnabledCheck.checked
+      autoSaveEnabled: autoSaveEnabledCheck.checked,
     };
 
     // Update settings in database
@@ -1277,26 +1373,28 @@ async function saveSettings() {
     userPreferences = updatedPreferences;
 
     // Apply theme
-    if (userPreferences.theme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else if (userPreferences.theme === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-    } else if (userPreferences.theme === 'system') {
-      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    if (userPreferences.theme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else if (userPreferences.theme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else if (userPreferences.theme === "system") {
+      const prefersDarkScheme = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      );
       if (prefersDarkScheme.matches) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.setAttribute("data-theme", "dark");
       } else {
-        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute("data-theme", "light");
       }
     }
 
     hideSettingsModal();
 
     // Show success notification
-    showNotification('Settings saved successfully');
+    showNotification("Settings saved successfully");
   } catch (error) {
-    console.error('Error saving settings:', error);
-    alert('Error saving settings. Please try again.');
+    console.error("Error saving settings:", error);
+    alert("Error saving settings. Please try again.");
   }
 }
 
@@ -1306,7 +1404,7 @@ async function createWorkspace() {
   const color = workspaceColorInput.value;
 
   if (!name) {
-    alert('Please enter a workspace name');
+    alert("Please enter a workspace name");
     return;
   }
 
@@ -1320,26 +1418,26 @@ async function createWorkspace() {
     // Hide modal
     hideWorkspaceModal();
   } catch (error) {
-    console.error('Error creating workspace:', error);
-    alert('Error creating workspace. Please try again.');
+    console.error("Error creating workspace:", error);
+    alert("Error creating workspace. Please try again.");
   }
 }
-
-
 
 // Set active workspace
 function setActiveWorkspace(workspaceId) {
   activeWorkspace = workspaceId;
 
   // Update UI
-  const items = workspacesList.querySelectorAll('.sidebar-item');
-  items.forEach(item => {
-    item.classList.remove('active');
+  const items = workspacesList.querySelectorAll(".sidebar-item");
+  items.forEach((item) => {
+    item.classList.remove("active");
   });
 
-  const activeItem = Array.from(items).find(item => item.dataset.spaceId === workspaceId);
+  const activeItem = Array.from(items).find(
+    (item) => item.dataset.spaceId === workspaceId
+  );
   if (activeItem) {
-    activeItem.classList.add('active');
+    activeItem.classList.add("active");
   }
 
   // Update collection space select
@@ -1351,26 +1449,25 @@ function setActiveWorkspace(workspaceId) {
 
 // Sync tabs
 function syncTabs() {
-  // Show syncing animation
-  syncBtn.classList.add('syncing');
-
-  // Reload tabs
-  loadOpenTabs();
-
-  // Remove syncing animation after a delay
-  setTimeout(() => {
-    syncBtn.classList.remove('syncing');
-  }, 1000);
+  if (!syncBtn) return;
+  syncBtn.classList.add("syncing");
+  chrome.runtime.sendMessage({ action: "syncTabs" }, () => {
+    // Refresh visible tabs after background sync completes
+    loadOpenTabs();
+    setTimeout(() => {
+      if (syncBtn) syncBtn.classList.remove("syncing");
+    }, 1000);
+  });
 }
 
 // Helper function to get default icon path
 function getDefaultIconPath() {
-  return chrome.runtime.getURL('app/assets/icons/icon16.png');
+  return chrome.runtime.getURL("app/assets/icons/icon16.png");
 }
 
 // Toggle tabs pane
 function toggleTabsPane() {
-  if (tabsPane.classList.contains('open')) {
+  if (tabsPane.classList.contains("open")) {
     closeTabsPane();
   } else {
     openTabsPane();
@@ -1379,30 +1476,30 @@ function toggleTabsPane() {
 
 // Open tabs pane
 function openTabsPane() {
-  tabsPane.classList.add('open');
-  tabsToggleIcon.style.transform = 'rotate(180deg)';
+  tabsPane.classList.add("open");
+  tabsToggleIcon.style.transform = "rotate(180deg)";
 }
 
 // Close tabs pane
 function closeTabsPane() {
-  tabsPane.classList.remove('open');
-  tabsToggleIcon.style.transform = 'rotate(0deg)';
+  tabsPane.classList.remove("open");
+  tabsToggleIcon.style.transform = "rotate(0deg)";
 }
 
 // Toggle collection collapse
 function toggleCollectionCollapse(collectionGroup) {
-  collectionGroup.classList.toggle('collapsed');
+  collectionGroup.classList.toggle("collapsed");
 }
 
 // Open tab from collection
 async function openTabFromCollection(tab) {
   try {
     // Check if tab is already open
-    const openTabs = await new Promise(resolve => {
-      chrome.tabs.query({}, tabs => resolve(tabs));
+    const openTabs = await new Promise((resolve) => {
+      chrome.tabs.query({}, (tabs) => resolve(tabs));
     });
 
-    const openTab = openTabs.find(t => t.url === tab.url);
+    const openTab = openTabs.find((t) => t.url === tab.url);
 
     if (openTab) {
       // If tab is already open, switch to it
@@ -1413,7 +1510,7 @@ async function openTabFromCollection(tab) {
       chrome.tabs.create({ url: tab.url });
     }
   } catch (error) {
-    console.error('Error opening tab:', error);
+    console.error("Error opening tab:", error);
     // Fallback to just opening the URL
     chrome.tabs.create({ url: tab.url });
   }
@@ -1425,26 +1522,30 @@ async function removeTabFromCollection(tabId, collectionId) {
     await dataService.removeTabFromCollection(tabId, collectionId);
     // Update the tab count in the collection header
     const collection = await dataService.getCollection(collectionId);
-    const collectionGroup = document.querySelector(`.collection-group[data-collection-id="${collectionId}"]`);
+    const collectionGroup = document.querySelector(
+      `.collection-group[data-collection-id="${collectionId}"]`
+    );
     if (collectionGroup) {
-      const countElement = collectionGroup.querySelector('.collection-count');
+      const countElement = collectionGroup.querySelector(".collection-count");
       if (countElement) {
         const tabCount = collection.tabs ? collection.tabs.length : 0;
-        countElement.textContent = `${tabCount} tab${tabCount !== 1 ? 's' : ''}`;
+        countElement.textContent = `${tabCount} tab${
+          tabCount !== 1 ? "s" : ""
+        }`;
       }
 
       // If no tabs left, show empty message
-      const content = collectionGroup.querySelector('.collection-content');
+      const content = collectionGroup.querySelector(".collection-content");
       if (content && (!collection.tabs || collection.tabs.length === 0)) {
-        content.innerHTML = '';
-        const emptyMessage = document.createElement('div');
-        emptyMessage.className = 'empty-message';
-        emptyMessage.textContent = 'No tabs in this collection';
+        content.innerHTML = "";
+        const emptyMessage = document.createElement("div");
+        emptyMessage.className = "empty-message";
+        emptyMessage.textContent = "No tabs in this collection";
         content.appendChild(emptyMessage);
       }
     }
   } catch (error) {
-    console.error('Error removing tab from collection:', error);
+    console.error("Error removing tab from collection:", error);
   }
 }
 
@@ -1453,17 +1554,20 @@ async function exportData() {
   try {
     const data = await dataService.exportData();
     const dataStr = JSON.stringify(data, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const dataUri =
+      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = `tab-export-${new Date().toISOString().slice(0, 10)}.json`;
+    const exportFileDefaultName = `tab-export-${new Date()
+      .toISOString()
+      .slice(0, 10)}.json`;
 
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
     linkElement.click();
   } catch (error) {
-    console.error('Error exporting data:', error);
-    alert('Error exporting data. Please try again.');
+    console.error("Error exporting data:", error);
+    alert("Error exporting data. Please try again.");
   }
 }
 
@@ -1480,7 +1584,9 @@ async function importData(jsonData) {
       await loadSpaces();
       await loadCollections();
 
-      showNotification(`Import successful! Added ${stats.spaces} spaces, ${stats.collections} collections, and ${stats.tabs} tabs.`);
+      showNotification(
+        `Import successful! Added ${stats.spaces} spaces, ${stats.collections} collections, and ${stats.tabs} tabs.`
+      );
     } else if (data.spaces && data.collections) {
       await dataService.importData(data);
 
@@ -1488,28 +1594,30 @@ async function importData(jsonData) {
       await loadSpaces();
       await loadCollections();
 
-      showNotification('Data imported successfully!');
+      showNotification("Data imported successfully!");
     } else {
-      throw new Error('Unrecognized data format');
+      throw new Error("Unrecognized data format");
     }
   } catch (error) {
-    console.error('Error importing data:', error);
-    alert(`Error importing data: ${error.message}. Please check the file format and try again.`);
+    console.error("Error importing data:", error);
+    alert(
+      `Error importing data: ${error.message}. Please check the file format and try again.`
+    );
   }
 }
 
 // Show notification
-function showNotification(message, type = 'success') {
+function showNotification(message, type = "success") {
   // Create notification element
-  const notification = document.createElement('div');
+  const notification = document.createElement("div");
   notification.className = `notification ${type}`;
   notification.textContent = message;
 
   // Add close button
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'notification-close';
-  closeBtn.innerHTML = '&times;';
-  closeBtn.addEventListener('click', () => {
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "notification-close";
+  closeBtn.innerHTML = "&times;";
+  closeBtn.addEventListener("click", () => {
     notification.remove();
   });
 
@@ -1520,7 +1628,7 @@ function showNotification(message, type = 'success') {
 
   // Auto-remove after 3 seconds
   setTimeout(() => {
-    notification.classList.add('fade-out');
+    notification.classList.add("fade-out");
     setTimeout(() => {
       notification.remove();
     }, 300);
@@ -1531,12 +1639,12 @@ function showNotification(message, type = 'success') {
 function showRenameWorkspaceModal(space) {
   currentWorkspaceForAction = space;
   renameWorkspaceNameInput.value = space.name;
-  renameWorkspaceColorInput.value = space.color || '#4f5bd5';
-  renameWorkspaceModal.classList.add('show');
+  renameWorkspaceColorInput.value = space.color || "#4f5bd5";
+  renameWorkspaceModal.classList.add("show");
 }
 
 function hideRenameWorkspaceModal() {
-  renameWorkspaceModal.classList.remove('show');
+  renameWorkspaceModal.classList.remove("show");
   currentWorkspaceForAction = null;
 }
 
@@ -1545,18 +1653,21 @@ async function renameWorkspace() {
   const color = renameWorkspaceColorInput.value;
 
   if (!name) {
-    alert('Please enter a workspace name');
+    alert("Please enter a workspace name");
     return;
   }
 
   try {
-    await dataService.updateSpace(currentWorkspaceForAction.id, { name, color });
+    await dataService.updateSpace(currentWorkspaceForAction.id, {
+      name,
+      color,
+    });
     await loadSpaces();
     hideRenameWorkspaceModal();
-    showNotification('Workspace renamed successfully');
+    showNotification("Workspace renamed successfully");
   } catch (error) {
-    console.error('Error renaming workspace:', error);
-    alert('Error renaming workspace. Please try again.');
+    console.error("Error renaming workspace:", error);
+    alert("Error renaming workspace. Please try again.");
   }
 }
 
@@ -1569,33 +1680,40 @@ async function showDeleteWorkspaceModal(space) {
 
   // Update info box
   if (collections.length > 0) {
-    const totalTabs = collections.reduce((sum, col) => sum + (col.tabs ? col.tabs.length : 0), 0);
+    const totalTabs = collections.reduce(
+      (sum, col) => sum + (col.tabs ? col.tabs.length : 0),
+      0
+    );
     workspaceCollectionsInfo.innerHTML = `
       <strong>This workspace contains:</strong><br>
-      ${collections.length} collection${collections.length !== 1 ? 's' : ''} with ${totalTabs} tab${totalTabs !== 1 ? 's' : ''}
+      ${collections.length} collection${
+      collections.length !== 1 ? "s" : ""
+    } with ${totalTabs} tab${totalTabs !== 1 ? "s" : ""}
     `;
   } else {
-    workspaceCollectionsInfo.innerHTML = '<strong>This workspace is empty.</strong>';
+    workspaceCollectionsInfo.innerHTML =
+      "<strong>This workspace is empty.</strong>";
   }
 
   // Populate migration dropdown
   const spaces = await dataService.getSpaces();
-  migrateToWorkspaceSelect.innerHTML = '<option value="">Delete all collections</option>';
+  migrateToWorkspaceSelect.innerHTML =
+    '<option value="">Delete all collections</option>';
 
-  spaces.forEach(s => {
+  spaces.forEach((s) => {
     if (s.id !== space.id) {
-      const option = document.createElement('option');
+      const option = document.createElement("option");
       option.value = s.id;
       option.textContent = s.name;
       migrateToWorkspaceSelect.appendChild(option);
     }
   });
 
-  deleteWorkspaceModal.classList.add('show');
+  deleteWorkspaceModal.classList.add("show");
 }
 
 function hideDeleteWorkspaceModal() {
-  deleteWorkspaceModal.classList.remove('show');
+  deleteWorkspaceModal.classList.remove("show");
   currentWorkspaceForAction = null;
 }
 
@@ -1603,7 +1721,10 @@ async function deleteWorkspace() {
   const targetSpaceId = migrateToWorkspaceSelect.value || null;
 
   try {
-    await dataService.deleteSpaceWithMigration(currentWorkspaceForAction.id, targetSpaceId);
+    await dataService.deleteSpaceWithMigration(
+      currentWorkspaceForAction.id,
+      targetSpaceId
+    );
 
     // If we deleted the active workspace, switch to another one
     if (activeWorkspace === currentWorkspaceForAction.id) {
@@ -1618,13 +1739,15 @@ async function deleteWorkspace() {
     hideDeleteWorkspaceModal();
 
     if (targetSpaceId) {
-      showNotification('Workspace deleted and collections migrated successfully');
+      showNotification(
+        "Workspace deleted and collections migrated successfully"
+      );
     } else {
-      showNotification('Workspace and all collections deleted successfully');
+      showNotification("Workspace and all collections deleted successfully");
     }
   } catch (error) {
-    console.error('Error deleting workspace:', error);
-    alert('Error deleting workspace. Please try again.');
+    console.error("Error deleting workspace:", error);
+    alert("Error deleting workspace. Please try again.");
   }
 }
 
@@ -1632,11 +1755,11 @@ async function deleteWorkspace() {
 function showRenameCollectionModal(collection) {
   currentCollectionForAction = collection;
   renameCollectionNameInput.value = collection.name;
-  renameCollectionModal.classList.add('show');
+  renameCollectionModal.classList.add("show");
 }
 
 function hideRenameCollectionModal() {
-  renameCollectionModal.classList.remove('show');
+  renameCollectionModal.classList.remove("show");
   currentCollectionForAction = null;
 }
 
@@ -1644,7 +1767,7 @@ async function renameCollection() {
   const name = renameCollectionNameInput.value.trim();
 
   if (!name) {
-    alert('Please enter a collection name');
+    alert("Please enter a collection name");
     return;
   }
 
@@ -1652,10 +1775,10 @@ async function renameCollection() {
     await dataService.updateCollection(currentCollectionForAction.id, { name });
     await loadCollections();
     hideRenameCollectionModal();
-    showNotification('Collection renamed successfully');
+    showNotification("Collection renamed successfully");
   } catch (error) {
-    console.error('Error renaming collection:', error);
-    alert('Error renaming collection. Please try again.');
+    console.error("Error renaming collection:", error);
+    alert("Error renaming collection. Please try again.");
   }
 }
 
@@ -1666,15 +1789,17 @@ async function showDeleteCollectionModal(collection) {
   // Update info box
   const tabCount = collection.tabs ? collection.tabs.length : 0;
   collectionTabsInfo.innerHTML = `
-    <strong>This collection contains ${tabCount} tab${tabCount !== 1 ? 's' : ''}.</strong><br>
+    <strong>This collection contains ${tabCount} tab${
+    tabCount !== 1 ? "s" : ""
+  }.</strong><br>
     All tabs will be permanently deleted.
   `;
 
-  deleteCollectionModal.classList.add('show');
+  deleteCollectionModal.classList.add("show");
 }
 
 function hideDeleteCollectionModal() {
-  deleteCollectionModal.classList.remove('show');
+  deleteCollectionModal.classList.remove("show");
   currentCollectionForAction = null;
 }
 
@@ -1683,10 +1808,10 @@ async function deleteCollection() {
     await dataService.deleteCollection(currentCollectionForAction.id);
     await loadCollections();
     hideDeleteCollectionModal();
-    showNotification('Collection deleted successfully');
+    showNotification("Collection deleted successfully");
   } catch (error) {
-    console.error('Error deleting collection:', error);
-    alert('Error deleting collection. Please try again.');
+    console.error("Error deleting collection:", error);
+    alert("Error deleting collection. Please try again.");
   }
 }
 
@@ -1695,7 +1820,7 @@ async function deduplicateTabs(collectionId) {
   try {
     const collection = await dataService.getCollection(collectionId);
     if (!collection || !collection.tabs || collection.tabs.length === 0) {
-      showNotification('No tabs to deduplicate', 'warning');
+      showNotification("No tabs to deduplicate", "warning");
       return;
     }
 
@@ -1704,7 +1829,7 @@ async function deduplicateTabs(collectionId) {
     const seenUrls = new Set();
     let duplicateCount = 0;
 
-    collection.tabs.forEach(tab => {
+    collection.tabs.forEach((tab) => {
       if (!seenUrls.has(tab.url)) {
         seenUrls.add(tab.url);
         uniqueTabs.push(tab);
@@ -1714,19 +1839,29 @@ async function deduplicateTabs(collectionId) {
     });
 
     if (duplicateCount === 0) {
-      showNotification('No duplicate tabs found', 'warning');
+      showNotification("No duplicate tabs found", "warning");
       return;
     }
 
     // Confirm before removing
-    if (confirm(`Found ${duplicateCount} duplicate tab${duplicateCount !== 1 ? 's' : ''}. Remove them?`)) {
+    if (
+      confirm(
+        `Found ${duplicateCount} duplicate tab${
+          duplicateCount !== 1 ? "s" : ""
+        }. Remove them?`
+      )
+    ) {
       await dataService.updateCollection(collectionId, { tabs: uniqueTabs });
       await loadCollections();
-      showNotification(`Removed ${duplicateCount} duplicate tab${duplicateCount !== 1 ? 's' : ''}`);
+      showNotification(
+        `Removed ${duplicateCount} duplicate tab${
+          duplicateCount !== 1 ? "s" : ""
+        }`
+      );
     }
   } catch (error) {
-    console.error('Error deduplicating tabs:', error);
-    alert('Error removing duplicates. Please try again.');
+    console.error("Error deduplicating tabs:", error);
+    alert("Error removing duplicates. Please try again.");
   }
 }
 
@@ -1734,10 +1869,10 @@ async function deduplicateTabs(collectionId) {
 function toggleTabSelection(tabId, tabElement) {
   if (bulkSelectedTabs.has(tabId)) {
     bulkSelectedTabs.delete(tabId);
-    tabElement.classList.remove('selected');
+    tabElement.classList.remove("selected");
   } else {
     bulkSelectedTabs.add(tabId);
-    tabElement.classList.add('selected');
+    tabElement.classList.add("selected");
   }
 
   updateBulkOperationsBar();
@@ -1747,20 +1882,24 @@ function updateBulkOperationsBar() {
   const count = bulkSelectedTabs.size;
 
   if (count > 0) {
-    bulkSelectedCount.textContent = `${count} tab${count !== 1 ? 's' : ''} selected`;
-    bulkOperationsBar.style.display = 'flex';
+    bulkSelectedCount.textContent = `${count} tab${
+      count !== 1 ? "s" : ""
+    } selected`;
+    bulkOperationsBar.style.display = "flex";
   } else {
-    bulkOperationsBar.style.display = 'none';
+    bulkOperationsBar.style.display = "none";
   }
 }
 
 function deselectAllTabs() {
   bulkSelectedTabs.clear();
-  document.querySelectorAll('.collection-tab-card.selected, .tab-card.selected').forEach(el => {
-    el.classList.remove('selected');
-    const checkbox = el.querySelector('.tab-checkbox');
-    if (checkbox) checkbox.checked = false;
-  });
+  document
+    .querySelectorAll(".collection-tab-card.selected, .tab-card.selected")
+    .forEach((el) => {
+      el.classList.remove("selected");
+      const checkbox = el.querySelector(".tab-checkbox");
+      if (checkbox) checkbox.checked = false;
+    });
   updateBulkOperationsBar();
 }
 
@@ -1776,7 +1915,7 @@ async function saveBulkSelectedTabs() {
     const collections = await dataService.getCollections();
     for (const collection of collections) {
       if (collection.tabs) {
-        const tab = collection.tabs.find(t => t.id === tabId);
+        const tab = collection.tabs.find((t) => t.id === tabId);
         if (tab) {
           tabs.push(tab);
           break;
@@ -1796,7 +1935,13 @@ async function deleteBulkSelectedTabs() {
     return;
   }
 
-  if (!confirm(`Delete ${bulkSelectedTabs.size} selected tab${bulkSelectedTabs.size !== 1 ? 's' : ''}?`)) {
+  if (
+    !confirm(
+      `Delete ${bulkSelectedTabs.size} selected tab${
+        bulkSelectedTabs.size !== 1 ? "s" : ""
+      }?`
+    )
+  ) {
     return;
   }
 
@@ -1808,7 +1953,7 @@ async function deleteBulkSelectedTabs() {
     for (const tabId of bulkSelectedTabs) {
       for (const collection of collections) {
         if (collection.tabs) {
-          const tab = collection.tabs.find(t => t.id === tabId);
+          const tab = collection.tabs.find((t) => t.id === tabId);
           if (tab) {
             if (!tabsByCollection.has(collection.id)) {
               tabsByCollection.set(collection.id, []);
@@ -1829,9 +1974,13 @@ async function deleteBulkSelectedTabs() {
 
     deselectAllTabs();
     await loadCollections();
-    showNotification(`Deleted ${bulkSelectedTabs.size} tab${bulkSelectedTabs.size !== 1 ? 's' : ''}`);
+    showNotification(
+      `Deleted ${bulkSelectedTabs.size} tab${
+        bulkSelectedTabs.size !== 1 ? "s" : ""
+      }`
+    );
   } catch (error) {
-    console.error('Error deleting bulk tabs:', error);
-    alert('Error deleting tabs. Please try again.');
+    console.error("Error deleting bulk tabs:", error);
+    alert("Error deleting tabs. Please try again.");
   }
 }
