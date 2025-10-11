@@ -26,7 +26,7 @@
     "alarms"
   ],
   "background": {
-    "service_worker": "app/background.js",
+    "service_worker": "dist/background.js",
     "type": "module"
   },
   "chrome_url_overrides": {
@@ -55,7 +55,7 @@
     "<all_urls>"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://anoylxzjeatvusegpzmy.supabase.co wss://anoylxzjeatvusegpzmy.supabase.co"
   },
   "web_accessible_resources": [{
     "resources": ["assets/*", "app/assets/*"],
