@@ -1,4 +1,6 @@
 // Popup script for Simple Tab Manager
+import dataService from '../services/data.js';
+
 
 // DOM Elements
 const openTabsList = document.getElementById('open-tabs');
@@ -9,6 +11,8 @@ const newCollectionBtn = document.getElementById('new-collection-btn');
 const newWorkspaceBtn = document.getElementById('new-workspace-btn');
 const syncBtn = document.getElementById('sync-btn');
 const settingsBtn = document.getElementById('settings-btn');
+const authLoginBtn = document.getElementById('auth-login-btn');
+const authRegisterBtn = document.getElementById('auth-register-btn');
 const collectionSpaceSelect = document.getElementById('collection-space');
 
 // Modals
@@ -35,11 +39,7 @@ let currentTabs = [];
 let collections = {};
 let selectedTabs = [];
 let activeWorkspace = 'personal';
-let workspaces = [
-  { id: 'personal', name: 'Personal', color: '#ff5c8d' },
-  { id: 'work', name: 'Work', color: '#4caf50' },
-  { id: 'research', name: 'Research', color: '#ff9800' }
-];
+let workspaces = [];
 let userPreferences = {
   theme: 'light',
   syncEnabled: true,
@@ -73,11 +73,25 @@ const safeApiCall = async (apiCall) => {
 };
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  loadUserPreferences();
-  loadCollections();
-  loadOpenTabs();
-  setupEventListeners();
+document.addEventListener('DOMContentLoaded', async () => {
+  // Check auth: if not signed in, open auth page in a new tab and close popup
+  chrome.runtime.sendMessage({ action: 'authGetSession' }, async (resp) => {
+    const signedIn = !!resp?.data?.session?.user;
+    if (!signedIn) {
+      chrome.tabs.create({ url: chrome.runtime.getURL('app/pages/newtab.html') });
+      window.close();
+      return;
+    }
+    // Hide Sign Up when user is authenticated
+    if (authRegisterBtn) authRegisterBtn.style.display = 'none';
+
+    // Continue normal initialization
+    await loadUserPreferences();
+    await loadCollections();
+    await loadOpenTabs();
+    setupEventListeners();
+    await loadWorkspaces();
+  });
 });
 
 // Load user preferences
@@ -119,6 +133,64 @@ async function loadCollections() {
     handleChromeError(error);
   }
 }
+// Load workspaces (dynamic)
+async function loadWorkspaces() {
+  try {
+    workspaces = await dataService.getSpaces();
+    if (!workspaces || workspaces.length === 0) {
+      workspaces = [{ id: 'personal', name: 'Personal', color: '#ff5c8d' }];
+    }
+    if (!activeWorkspace || !workspaces.find(w => w.id === activeWorkspace)) {
+      activeWorkspace = workspaces[0].id;
+    }
+    renderWorkspaces();
+    populateWorkspaceSelect();
+    filterCollectionsByWorkspace(activeWorkspace);
+  } catch (e) {
+    console.error('Failed to load workspaces', e);
+  }
+}
+
+function renderWorkspaces() {
+  workspacesList.innerHTML = '';
+  workspaces.forEach((w, idx) => {
+    const item = document.createElement('div');
+    item.className = 'space-item' + ((w.id === activeWorkspace) ? ' active' : '');
+    item.dataset.spaceId = w.id;
+
+    const color = document.createElement('div');
+    color.className = 'space-color';
+    color.style.backgroundColor = w.color || '#914CE6';
+
+    const name = document.createElement('div');
+    name.className = 'space-name';
+    name.textContent = w.name;
+
+    item.appendChild(color);
+    item.appendChild(name);
+
+    item.addEventListener('click', () => {
+      activeWorkspace = w.id;
+      renderWorkspaces();
+      filterCollectionsByWorkspace(activeWorkspace);
+    });
+
+    workspacesList.appendChild(item);
+  });
+}
+
+function populateWorkspaceSelect() {
+  if (!collectionSpaceSelect) return;
+  collectionSpaceSelect.innerHTML = '';
+  workspaces.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w.id;
+    opt.textContent = w.name;
+    collectionSpaceSelect.appendChild(opt);
+  });
+  collectionSpaceSelect.value = activeWorkspace;
+}
+
 
 // Load open tabs
 async function loadOpenTabs() {
@@ -149,9 +221,11 @@ function createTabElement(tab) {
 
   const favicon = document.createElement('img');
   favicon.className = 'tab-favicon';
-  favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
+  const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
+  favicon.src = tab.favIconUrl || defaultIcon;
   favicon.onerror = () => {
-    favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
+    favicon.onerror = null; // prevent infinite loop
+    favicon.src = defaultIcon;
   };
 
   const title = document.createElement('div');
@@ -249,9 +323,11 @@ function createCollectionElement(collection) {
     tabIcon.className = 'collection-tab';
 
     const favicon = document.createElement('img');
-    favicon.src = tab.favicon || chrome.runtime.getURL('assets/icons/icon16.png');
+    const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
+    favicon.src = tab.favicon || defaultIcon;
     favicon.onerror = () => {
-      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
+      favicon.onerror = null;
+      favicon.src = defaultIcon;
     };
 
     tabIcon.appendChild(favicon);
@@ -303,10 +379,12 @@ function setupEventListeners() {
     showWorkspaceModal();
   });
 
-  // Sync button
-  syncBtn.addEventListener('click', () => {
-    syncTabs();
-  });
+  // Sync button (removed from popup UI). Guard in case it's present.
+  if (syncBtn) {
+    syncBtn.addEventListener('click', () => {
+      syncTabs();
+    });
+  }
 
   // Settings button
   settingsBtn.addEventListener('click', () => {
@@ -333,7 +411,44 @@ function setupEventListeners() {
     saveSettings();
   });
 
-  
+  // Auth buttons
+  // Auth buttons: bind based on current session state
+  const bindAuthButtons = () => {
+    chrome.runtime.sendMessage({ action: 'authGetSession' }, (resp) => {
+      const signedIn = !!resp?.data?.session?.user;
+      if (signedIn) {
+        if (authRegisterBtn) authRegisterBtn.style.display = 'none';
+        if (authLoginBtn) {
+          authLoginBtn.textContent = 'Sign Out';
+          authLoginBtn.title = 'Sign out';
+          authLoginBtn.onclick = () => {
+            chrome.runtime.sendMessage({ action: 'authLogout' }, () => {
+              chrome.tabs.create({ url: chrome.runtime.getURL('app/pages/newtab.html') });
+              window.close();
+            });
+          };
+        }
+      } else {
+        if (authLoginBtn) {
+          authLoginBtn.textContent = 'Sign In';
+          authLoginBtn.title = 'Sign in';
+          authLoginBtn.onclick = () => {
+            chrome.tabs.create({ url: chrome.runtime.getURL('app/pages/auth.html#signin') });
+            window.close();
+          };
+        }
+        if (authRegisterBtn) {
+          authRegisterBtn.style.display = '';
+          authRegisterBtn.onclick = () => {
+            chrome.tabs.create({ url: chrome.runtime.getURL('app/pages/auth.html#signup') });
+            window.close();
+          };
+        }
+      }
+    });
+  };
+  bindAuthButtons();
+
 
   // Setup workspace items click events
   const spaceItems = workspacesList.querySelectorAll('.space-item');
@@ -367,9 +482,11 @@ function showSaveModal(tabs) {
 
     const favicon = document.createElement('img');
     favicon.className = 'tab-favicon';
-    favicon.src = tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png');
+    const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
+    favicon.src = tab.favIconUrl || defaultIcon;
     favicon.onerror = () => {
-      favicon.src = chrome.runtime.getURL('assets/icons/icon16.png');
+      favicon.onerror = null;
+      favicon.src = defaultIcon;
     };
 
     const title = document.createElement('div');
@@ -417,11 +534,12 @@ function saveCollection() {
 
   const collectionId = `collection-${Date.now()}`;
 
+  const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
   const tabs = selectedTabs.map(tab => ({
     id: tab.id,
     url: tab.url,
     title: tab.title,
-    favicon: tab.favIconUrl || chrome.runtime.getURL('assets/icons/icon16.png')
+    favicon: tab.favIconUrl || defaultIcon
   }));
 
   const collection = {
@@ -509,16 +627,15 @@ function syncTabs() {
     alert('Sync is disabled. Enable it in settings first.');
     return;
   }
-
+  if (!syncBtn) {
+    chrome.runtime.sendMessage({ action: 'syncTabs' });
+    return;
+  }
   // Show syncing animation
   syncBtn.classList.add('syncing');
-
-  chrome.runtime.sendMessage({
-    action: 'syncTabs'
-  }, () => {
-    // Remove syncing animation after a delay
+  chrome.runtime.sendMessage({ action: 'syncTabs' }, () => {
     setTimeout(() => {
-      syncBtn.classList.remove('syncing');
+      if (syncBtn) syncBtn.classList.remove('syncing');
     }, 1000);
   });
 }
