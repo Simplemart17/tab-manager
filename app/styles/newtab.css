@@ -1,102 +1,153 @@
-@import url('https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@100..900&family=Lavishly+Yours&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@100..900&family=Lavishly+Yours&display=swap");
 
-:root { --sidebar-width: 240px; }
+:root {
+  --sidebar-width: 240px;
+}
 
 /* App Logo */
-.app-logo { position: relative; display: inline-block; line-height: 1; }
-.app-logo .simple { color: var(--primary-color); font-size: 24px; }
-.app-logo .plus { position: absolute; right: 0px; bottom: -16px; font-size: 24px; opacity: 0.9; color: var(--text-secondary); }
+.app-logo {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+}
+.app-logo .simple {
+  color: var(--primary-color);
+  font-size: 24px;
+}
+.app-logo .plus {
+  position: absolute;
+  right: 0px;
+  bottom: -16px;
+  font-size: 24px;
+  opacity: 0.9;
+  color: var(--text-secondary);
+}
 
 /* Sidebar toggle */
-.sidebar-toggle { align-self: flex-end; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px; border-radius: 6px; transition: background-color 0.2s ease, transform 0.2s ease; }
-.sidebar-toggle:hover { background-color: var(--background-color); transform: translateX(1px); }
-.sidebar-toggle-icon { transition: transform 0.25s ease; }
-.sidebar.collapsed .sidebar-toggle-icon { transform: rotate(180deg); }
-.grenze-gotisch-simple { font-family: "Grenze Gotisch", serif; font-optical-sizing: auto; font-weight: 500; font-style: normal; }
-.lavishly-yours-regular { font-family: "Lavishly Yours", cursive; font-weight: 400; font-style: normal; }
-
+.sidebar-toggle {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.sidebar-toggle:hover {
+  background-color: var(--background-color);
+  transform: translateX(1px);
+}
+.sidebar-toggle-icon {
+  transition: transform 0.25s ease;
+}
+.sidebar.collapsed .sidebar-toggle-icon {
+  transform: rotate(180deg);
+}
+.grenze-gotisch-simple {
+  font-family: "Grenze Gotisch", serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+}
+.lavishly-yours-regular {
+  font-family: "Lavishly Yours", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
 
 :root {
   /* Common variables */
-  --primary-color: #914CE6; /* Main purple color */
+  --primary-color: #914ce6; /* Main purple color */
   --primary-color-rgb: 145, 76, 230; /* RGB values for primary color */
-  --primary-light: #A76EEA; /* Lighter purple */
-  --primary-dark: #7A3BC9; /* Darker purple */
-  --accent-color: #4ECDC4; /* Teal accent color */
+  --primary-light: #a76eea; /* Lighter purple */
+  --primary-dark: #7a3bc9; /* Darker purple */
+  --accent-color: #4ecdc4; /* Teal accent color */
   --accent-color-rgb: 78, 205, 196; /* RGB values for accent color */
-  --accent-light: #6ED9D2; /* Lighter teal */
-  --accent-dark: #3AAFA9; /* Darker teal */
+  --accent-light: #6ed9d2; /* Lighter teal */
+  --accent-dark: #3aafa9; /* Darker teal */
   --success-color: #4caf50;
   --error-color: #f44336;
   --warning-color: #ff9800;
   --border-radius: 8px;
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 
   /* Light theme variables */
   --text-color: #333;
   --text-secondary: #666;
-  --background-color: #F8F7FC; /* Very light purple tint */
+  --background-color: #f8f7fc; /* Very light purple tint */
   --surface-color: #fff;
-  --border-color: #E6E1F9; /* Light purple border */
+  --border-color: #e6e1f9; /* Light purple border */
   --shadow-sm: 0 1px 3px rgba(145, 76, 230, 0.08);
   --shadow-md: 0 4px 6px rgba(145, 76, 230, 0.08);
   --shadow-lg: 0 10px 15px rgba(145, 76, 230, 0.08);
 
   /* Card colors - light theme */
   --card-bg: #fff;
-  --card-header-bg: #F5F2FF; /* Very light purple background */
-  --card-icon-bg: #F0EDFF; /* Light purple icon background */
-  --card-border: #E6E1F9;
+  --card-header-bg: #f5f2ff; /* Very light purple background */
+  --card-icon-bg: #f0edff; /* Light purple icon background */
+  --card-border: #e6e1f9;
   --card-text: #333;
   --card-text-secondary: #666;
 
   /* Collection colors - light theme */
   --collection-bg: #fff;
-  --collection-header-bg: #F5F2FF;
+  --collection-header-bg: #f5f2ff;
   --collection-content-bg: #fff;
-  --collection-border: #E6E1F9;
+  --collection-border: #e6e1f9;
 
   /* Modal colors - light theme */
   --modal-bg: #fff;
   --modal-text: #333;
 
   /* Accent usage in light theme */
-  --accent-element-bg: rgba(78, 205, 196, 0.1); /* Very subtle teal background */
-  --accent-element-border: #4ECDC4; /* Teal border for accented elements */
+  --accent-element-bg: rgba(
+    78,
+    205,
+    196,
+    0.1
+  ); /* Very subtle teal background */
+  --accent-element-border: #4ecdc4; /* Teal border for accented elements */
 }
 
 [data-theme="dark"] {
   /* Dark theme text and background */
   --text-color: #e0e0e0;
   --text-secondary: #a0a0a0;
-  --background-color: #1A1A2E; /* Slightly more blue-toned dark background */
+  --background-color: #1a1a2e; /* Slightly more blue-toned dark background */
   --surface-color: #232342; /* Slightly more purple-toned surface */
-  --border-color: #3A3A60; /* More purple-toned border */
+  --border-color: #3a3a60; /* More purple-toned border */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
 
   /* Card colors - dark theme */
-  --card-bg: #2D2D4A; /* Slightly more purple-toned card */
+  --card-bg: #2d2d4a; /* Slightly more purple-toned card */
   --card-header-bg: #232342;
-  --card-icon-bg: #3A3A60;
-  --card-border: #3A3A60;
+  --card-icon-bg: #3a3a60;
+  --card-border: #3a3a60;
   --card-text: #e0e0e0;
   --card-text-secondary: #9e9ea7;
 
   /* Collection colors - dark theme */
   --collection-bg: #232342;
   --collection-header-bg: #232342;
-  --collection-content-bg: #1A1A2E;
-  --collection-border: #3A3A60;
+  --collection-content-bg: #1a1a2e;
+  --collection-border: #3a3a60;
 
   /* Modal colors - dark theme */
   --modal-bg: #232342;
   --modal-text: #e0e0e0;
 
   /* Accent usage in dark theme */
-  --accent-element-bg: rgba(78, 205, 196, 0.15); /* Subtle teal background for accented elements */
-  --accent-element-border: #4ECDC4; /* Teal border for accented elements */
+  --accent-element-bg: rgba(
+    78,
+    205,
+    196,
+    0.15
+  ); /* Subtle teal background for accented elements */
+  --accent-element-border: #4ecdc4; /* Teal border for accented elements */
 }
 
 * {
@@ -260,6 +311,10 @@ body {
 .user-profile:hover .user-dropdown {
   display: block;
 }
+/* Also allow click-to-open via .open class */
+.user-profile.open .user-dropdown {
+  display: block;
+}
 
 .user-dropdown a {
   display: block;
@@ -297,14 +352,21 @@ body {
   transition: width 0.3s ease, padding 0.3s ease;
 }
 /* Collapsed sidebar */
-.sidebar.collapsed { --sidebar-width: 56px; padding: 16px 8px; }
+.sidebar.collapsed {
+  --sidebar-width: 56px;
+  padding: 16px 8px;
+}
 .sidebar.collapsed .sidebar-section h3,
 .sidebar.collapsed .sidebar-new-btn,
 .sidebar.collapsed .sidebar-item.active,
-.sidebar.collapsed .sidebar-item span { display: none; }
-.sidebar.collapsed .workspace-actions { display: none !important; }
+.sidebar.collapsed .sidebar-item span {
+  display: none;
+}
+.sidebar.collapsed .workspace-actions {
+  display: none !important;
+}
 
-.sidebar-header { 
+.sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -349,7 +411,8 @@ body {
   border-radius: var(--border-radius);
   cursor: pointer;
   will-change: transform, background-color, color;
-  transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+  transition: background-color 0.25s ease, color 0.25s ease,
+    transform 0.25s ease;
   margin-bottom: 4px;
 }
 
@@ -656,15 +719,27 @@ body {
 }
 
 @keyframes pulse-success {
-  0% { box-shadow: 0 0 0 0 rgba(var(--accent-color-rgb), 0.7); }
-  50% { box-shadow: 0 0 0 10px rgba(var(--accent-color-rgb), 0); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--accent-color-rgb), 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-color-rgb), 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(var(--accent-color-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-color-rgb), 0);
+  }
 }
 
 @keyframes pulse-error {
-  0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
-  50% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
 }
 
 .drop-success {
@@ -708,15 +783,27 @@ body {
 }
 
 @keyframes pulse-success {
-  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-  50% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
 }
 
 @keyframes pulse-error {
-  0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
-  50% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+  }
 }
 
 .drag-feedback {
@@ -920,15 +1007,27 @@ body {
 }
 
 @keyframes pulse-success {
-  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-  50% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
 }
 
 @keyframes pulse-error {
-  0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
-  50% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+  }
 }
 
 .drag-feedback {
@@ -1281,7 +1380,8 @@ body {
   margin-bottom: 16px;
 }
 
-.modal-content input, .modal-content select {
+.modal-content input,
+.modal-content select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
@@ -1371,12 +1471,32 @@ body {
   color: var(--text-secondary);
 }
 /* Settings modal modern look */
-#settings-modal .modal-content { max-width: 640px; border-radius: 16px; padding: 28px; background-color: var(--surface-color); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); }
-#settings-modal h3 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
-#settings-modal .settings-group { background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); }
-#settings-modal .setting-item { padding: 6px 0; }
-#settings-modal .modal-actions .button { border-radius: 8px; }
-
+#settings-modal .modal-content {
+  max-width: 640px;
+  border-radius: 16px;
+  padding: 28px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+}
+#settings-modal h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+#settings-modal .settings-group {
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+#settings-modal .setting-item {
+  padding: 6px 0;
+}
+#settings-modal .modal-actions .button {
+  border-radius: 8px;
+}
 
 .setting-item {
   display: flex;
