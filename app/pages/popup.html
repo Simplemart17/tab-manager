@@ -14,14 +14,8 @@
         <span class="lavishly-yours-regular plus">Plus</span>
       </div>
       <div class="header-controls">
-        <button id="sync-btn" class="icon-button" title="Sync tabs">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 2v6h-6"></path>
-            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-            <path d="M3 22v-6h6"></path>
-            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-          </svg>
-        </button>
+        <button id="auth-login-btn" class="small-button" title="Sign in">Sign In</button>
+        <button id="auth-register-btn" class="small-button" title="Sign up">Sign Up</button>
         <button id="settings-btn" class="icon-button" title="Settings">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
@@ -43,20 +37,7 @@
         <h2>Spaces</h2>
         <button id="new-workspace-btn" class="small-button">New</button>
       </div>
-      <div id="workspaces-list" class="spaces-list">
-        <div class="space-item active" data-space-id="personal">
-          <div class="space-color" style="background-color: #ff5c8d;"></div>
-          <div class="space-name">Personal</div>
-        </div>
-        <div class="space-item" data-space-id="work">
-          <div class="space-color" style="background-color: #4caf50;"></div>
-          <div class="space-name">Work</div>
-        </div>
-        <div class="space-item" data-space-id="research">
-          <div class="space-color" style="background-color: #ff9800;"></div>
-          <div class="space-name">Research</div>
-        </div>
-      </div>
+      <div id="workspaces-list" class="spaces-list"></div>
     </div>
 
     <div class="collections-section">
@@ -73,11 +54,7 @@
         <h3>Save Collection</h3>
         <input type="text" id="collection-name" placeholder="Collection Name">
         <div class="setting-item">
-          <select id="collection-space">
-            <option value="personal">Personal</option>
-            <option value="work">Work</option>
-            <option value="research">Research</option>
-          </select>
+          <select id="collection-space"></select>
         </div>
         <div class="selected-tabs-list" id="selected-tabs"></div>
         <div class="modal-actions">
@@ -138,7 +115,7 @@
       </div>
     </div>
 
-    <script src="../utils/popup.js"></script>
+    <script type="module" src="../utils/popup.js"></script>
   </div>
 </body>
 </html>

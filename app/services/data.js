@@ -21,8 +21,14 @@ class DataService {
   }
 
   async createDefaultSpaces() {
-    const defaultSpace = { id: 'personal', name: 'Personal', color: '#914CE6', createdAt: Date.now() };
-    await dbService.addSpace(defaultSpace);
+    const defaults = [
+      { id: 'personal', name: 'Personal', color: '#ff5c8d', createdAt: Date.now() },
+      { id: 'work', name: 'Work', color: '#4caf50', createdAt: Date.now() },
+      { id: 'research', name: 'Research', color: '#ff9800', createdAt: Date.now() }
+    ];
+    for (const s of defaults) {
+      await dbService.addSpace(s);
+    }
   }
 
   // Spaces methods
