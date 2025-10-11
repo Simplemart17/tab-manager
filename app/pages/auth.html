@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Authenticate • Simple Tab Plus</title>
+  <link rel="stylesheet" href="../styles/auth.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-left">
+      <div class="brand">
+        <div class="app-logo">
+          <span class="grenze-gotisch-simple simple">Simple Tab</span>
+          <span class="lavishly-yours-regular plus">Plus</span>
+        </div>
+        <p class="tag">Sign in to sync your tabs and spaces across devices.</p>
+      </div>
+    </div>
+    <div class="auth-right">
+      <div class="card">
+        <h1 id="auth-title">Welcome back!</h1>
+        <p class="sub" id="auth-sub">New to Simple Tab Plus? <a href="#signup" id="toggle-link">Sign up</a></p>
+
+        <button class="oauth-btn" id="google-btn" disabled title="Google sign-in coming soon">
+          CONTINUE WITH GOOGLE
+        </button>
+        <div class="divider"><span>OR</span></div>
+
+        <form id="auth-form">
+          <label>Email
+            <input type="email" id="email" autocomplete="email" required />
+          </label>
+          <label>Password
+            <div class="password-field">
+              <input type="password" id="password" autocomplete="current-password" minlength="6" required />
+              <button type="button" id="toggle-password" class="toggle-password" aria-label="Show password" title="Show/Hide password">👁</button>
+            </div>
+          </label>
+          <div class="row between">
+            <a id="forgot-link" href="#" title="Reset via Supabase dashboard or app">Forgot password?</a>
+          </div>
+          <button type="submit" class="primary" id="submit-btn">LET'S GO</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../utils/auth.js"></script>
+</body>
+</html>
+
