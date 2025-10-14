@@ -6,6 +6,7 @@
   "scripts": {
     "build:bg": "esbuild app/background.js --bundle --format=esm --platform=browser --outfile=dist/background.js",
     "build": "npm run build:bg",
+    "package": "bash ./scripts/package-extension.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
