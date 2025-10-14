@@ -5,12 +5,26 @@ import dbService from './db.js';
 function nowIso() { return new Date().toISOString(); }
 function slugify(name) { return String(name || '').toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,''); }
 
+// Sync lock to prevent pullAll from running during syncAll
+let isSyncing = false;
+
 async function ensureProfile(supabase, user) {
   if (!user) return;
   await supabase.from('profiles').upsert({ user_id: user.id, email: user.email, created_at: nowIso() }).select();
 }
 
 export async function syncAll() {
+  // Set sync lock
+  isSyncing = true;
+  try {
+    return await _syncAllImpl();
+  } finally {
+    // Release sync lock
+    isSyncing = false;
+  }
+}
+
+async function _syncAllImpl() {
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'Supabase not configured' };
   const user = await getCurrentUser();
@@ -75,37 +89,85 @@ export async function syncAll() {
     if (!insErr) personalId = inserted?.id || null;
   }
 
-  // Upsert collections and tabs
-  const collRows = [];
-  const tabRows = [];
-  for (const [cid, coll] of Object.entries(collections)) {
-    collRows.push({
-      id: cid,
+  // Upsert collections and tabs (prefer IndexedDB; fallback to chrome.storage.local)
+  let idbCollections = await dataService.getCollections();
+  if (!idbCollections || idbCollections.length === 0) {
+    const local = await chrome.storage.local.get(['collections']);
+    const localObj = local.collections || {};
+    idbCollections = Object.values(localObj);
+  }
+
+  // Build a map of workspace name -> id for current user
+  const { data: wsList } = await supabase
+    .from('workspaces')
+    .select('id,name')
+    .eq('user_id', user.id);
+  const wsIdByName = Object.fromEntries((wsList || []).map(w => [String(w.name), w.id]));
+
+  const isUuid = (s) => /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(String(s || ''));
+
+  for (const coll of (idbCollections || [])) {
+    const localCid = coll.id;
+    // Determine workspace name: from IDB spaceId -> spaces[].name, or from chrome.storage local 'workspace' key
+    let wsName = 'Personal';
+    if (coll.spaceId) {
+      const space = (spaces || []).find(s => s.id === coll.spaceId);
+      wsName = space?.name || 'Personal';
+    } else if (coll.workspace) {
+      // Map canonical keys like 'personal' to display name
+      const key = String(coll.workspace).toLowerCase();
+      wsName = key === 'work' ? 'Work' : key === 'research' ? 'Research' : 'Personal';
+    }
+    const wsId = wsIdByName[wsName] || personalId || null;
+
+    const baseRow = {
       user_id: user.id,
-      workspace_id: personalId || null,
+      workspace_id: wsId,
       name: coll.name || 'Untitled',
-      created_at: coll.createdAt || nowIso(),
-      updated_at: coll.updatedAt || nowIso(),
-    });
+      created_at: coll.createdAt ? new Date(coll.createdAt).toISOString() : nowIso(),
+      updated_at: coll.updatedAt ? new Date(coll.updatedAt).toISOString() : nowIso(),
+    };
+
+    let remoteCollId = null;
+    if (isUuid(localCid)) {
+      const { data, error } = await supabase
+        .from('collections')
+        .upsert({ id: localCid, ...baseRow })
+        .select('id')
+        .maybeSingle();
+      if (error) throw new Error(`Collections upsert failed: ${error.message}`);
+      remoteCollId = data?.id || localCid;
+    } else {
+      // Insert new collection row and capture generated id
+      const { data, error } = await supabase
+        .from('collections')
+        .insert(baseRow)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new Error(`Collections insert failed: ${error.message}`);
+      remoteCollId = data?.id;
+    }
+
+    // Replace tabs for this collection id
     const tabs = Array.isArray(coll.tabs) ? coll.tabs : [];
-    tabs.forEach((t, idx) => {
-      tabRows.push({
+    const { error: delErr } = await supabase
+      .from('tabs')
+      .delete()
+      .eq('collection_id', remoteCollId);
+    if (delErr) throw new Error(`Tabs delete failed: ${delErr.message}`);
+
+    if (tabs.length) {
+      const rows = tabs.map((t, idx) => ({
         user_id: user.id,
-        collection_id: cid,
+        collection_id: remoteCollId,
         url: t.url,
         title: t.title || t.url,
         favicon: t.favicon || null,
         order_index: idx,
-      });
-    });
-  }
-
-  if (collRows.length) await supabase.from('collections').upsert(collRows);
-  if (tabRows.length) {
-    // Replace tabs for these collections: delete then insert to match order
-    const collectionIds = [...new Set(tabRows.map(r => r.collection_id))];
-    await supabase.from('tabs').delete().in('collection_id', collectionIds);
-    await supabase.from('tabs').insert(tabRows);
+      }));
+      const { error: insErr } = await supabase.from('tabs').insert(rows);
+      if (insErr) throw new Error(`Tabs insert failed: ${insErr.message}`);
+    }
   }
 
   // Upsert tab history (append new entries)
@@ -118,46 +180,83 @@ export async function syncAll() {
       favicon: h.favicon || null,
       timestamp: h.timestamp ? new Date(h.timestamp).toISOString() : nowIso(),
     }));
-    await supabase.from('tab_history').insert(historyRows);
+    const { error: histErr } = await supabase.from('tab_history').insert(historyRows);
+    if (histErr) throw new Error(`History insert failed: ${histErr.message}`);
   }
 
   return { ok: true };
 }
 
 export async function pullAll() {
+  // Don't pull if sync is in progress to avoid race conditions
+  if (isSyncing) {
+    console.log('Skipping pullAll - sync in progress');
+    return { ok: true, skipped: true };
+  }
+
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'Supabase not configured' };
   const user = await getCurrentUser();
   if (!user) return { ok: false, reason: 'Not signed in' };
 
-  // Pull workspaces and replace local list with remote
+  // Pull workspaces and merge with local spaces
   const { data: remoteWs } = await supabase
     .from('workspaces')
-    .select('name,color,updated_at')
+    .select('id,name,color,updated_at')
     .eq('user_id', user.id)
     .order('name');
-  if (Array.isArray(remoteWs)) {
-    // Clear existing local spaces
+
+  // Build a map from remote workspace id -> local space id
+  const wsIdToLocalSpaceId = {};
+
+  if (Array.isArray(remoteWs) && remoteWs.length > 0) {
     const existingSpaces = await dataService.getSpaces();
+    const existingSpacesMap = {};
     for (const sp of existingSpaces) {
-      await dataService.deleteSpace(sp.id);
+      existingSpacesMap[sp.name] = sp;
     }
-    // Add remote spaces locally with stable IDs based on name
+
+    // Merge remote spaces with local spaces
     for (const ws of remoteWs) {
       const name = ws.name;
       const color = ws.color || '#914CE6';
-      const id = name.toLowerCase() === 'personal' ? 'personal'
+      const localId = name.toLowerCase() === 'personal' ? 'personal'
         : name.toLowerCase() === 'work' ? 'work'
         : name.toLowerCase() === 'research' ? 'research'
         : slugify(name);
-      await dbService.addSpace({ id, name, color, createdAt: Date.now(), updatedAt: Date.now() });
+
+      wsIdToLocalSpaceId[ws.id] = localId;
+
+      const existingSpace = existingSpacesMap[name];
+      if (existingSpace) {
+        // Update existing space if remote is newer or if color changed
+        const remoteUpdatedAt = ws.updated_at ? new Date(ws.updated_at).getTime() : 0;
+        const localUpdatedAt = existingSpace.updatedAt || 0;
+
+        if (remoteUpdatedAt >= localUpdatedAt || existingSpace.color !== color) {
+          await dbService.updateSpace({
+            ...existingSpace,
+            color,
+            updatedAt: Date.now()
+          });
+        }
+      } else {
+        // Add new space from remote
+        await dbService.addSpace({
+          id: localId,
+          name,
+          color,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+      }
     }
   }
 
-  // Pull collections
+  // Pull collections (include workspace_id)
   const { data: collRows, error: collErr } = await supabase
     .from('collections')
-    .select('id,name,created_at,updated_at')
+    .select('id,name,workspace_id,created_at,updated_at')
     .eq('user_id', user.id);
   if (collErr) return { ok: false, reason: collErr.message };
 
@@ -172,22 +271,62 @@ export async function pullAll() {
     tabRows = tabsData || [];
   }
 
-  const localCollections = {};
-  (collRows || []).forEach(c => {
+  // Merge remote collections with local collections instead of replacing
+  const existingCollections = await dbService.getCollections();
+  const existingCollectionsMap = {};
+  for (const ec of existingCollections) {
+    existingCollectionsMap[ec.id] = ec;
+  }
+
+  // Track which remote collections we've processed
+  const processedRemoteIds = new Set();
+
+  for (const c of (collRows || [])) {
+    processedRemoteIds.add(c.id);
+
     const tabs = tabRows
       .filter(t => t.collection_id === c.id)
-      .map(t => ({ id: `tab-${Math.random().toString(36).slice(2)}`, url: t.url, title: t.title || t.url, favicon: t.favicon || '' }));
-    localCollections[c.id] = {
-      id: c.id,
-      name: c.name,
-      tabs,
-      // Default to Personal unless local has other mapping; can be refined later
-      workspace: 'personal',
-      createdAt: c.created_at ? new Date(c.created_at).getTime() : Date.now(),
-      updatedAt: c.updated_at ? new Date(c.updated_at).getTime() : Date.now(),
-    };
-  });
-  await chrome.storage.local.set({ collections: localCollections });
+      .map(t => ({
+        id: `tab-${Math.random().toString(36).slice(2)}`,
+        url: t.url,
+        title: t.title || t.url,
+        favicon: t.favicon || ''
+      }));
+
+    const spaceId = wsIdToLocalSpaceId[c.workspace_id] || 'personal';
+    const remoteUpdatedAt = c.updated_at ? new Date(c.updated_at).getTime() : Date.now();
+
+    const existingCollection = existingCollectionsMap[c.id];
+
+    if (existingCollection) {
+      // Collection exists locally - update only if remote is newer
+      const localUpdatedAt = existingCollection.updatedAt || 0;
+
+      if (remoteUpdatedAt >= localUpdatedAt) {
+        const coll = {
+          id: c.id,
+          name: c.name,
+          spaceId,
+          tabs,
+          createdAt: c.created_at ? new Date(c.created_at).getTime() : Date.now(),
+          updatedAt: remoteUpdatedAt,
+        };
+        await dbService.updateCollection(coll);
+      }
+      // If local is newer, keep local version (it will be synced on next syncAll)
+    } else {
+      // Collection doesn't exist locally - add it
+      const coll = {
+        id: c.id,
+        name: c.name,
+        spaceId,
+        tabs,
+        createdAt: c.created_at ? new Date(c.created_at).getTime() : Date.now(),
+        updatedAt: remoteUpdatedAt,
+      };
+      await dbService.addCollection(coll);
+    }
+  }
 
   // Pull user settings
   const { data: settings } = await supabase

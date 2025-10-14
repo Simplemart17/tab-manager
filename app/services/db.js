@@ -68,6 +68,7 @@ class IndexedDBService {
   }
 
   async getCollectionsBySpace(spaceId) {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['collections'], 'readonly');
       const store = transaction.objectStore('collections');
@@ -121,6 +122,7 @@ class IndexedDBService {
 
   // Generic CRUD operations
   async getAll(storeName) {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([storeName], 'readonly');
       const store = transaction.objectStore(storeName);
@@ -137,6 +139,7 @@ class IndexedDBService {
   }
 
   async get(storeName, id) {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([storeName], 'readonly');
       const store = transaction.objectStore(storeName);
@@ -153,6 +156,7 @@ class IndexedDBService {
   }
 
   async add(storeName, item) {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([storeName], 'readwrite');
       const store = transaction.objectStore(storeName);
@@ -169,6 +173,7 @@ class IndexedDBService {
   }
 
   async update(storeName, item) {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([storeName], 'readwrite');
       const store = transaction.objectStore(storeName);
@@ -185,6 +190,7 @@ class IndexedDBService {
   }
 
   async delete(storeName, id) {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([storeName], 'readwrite');
       const store = transaction.objectStore(storeName);
