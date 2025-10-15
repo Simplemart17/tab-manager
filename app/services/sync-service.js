@@ -104,8 +104,6 @@ async function _syncAllImpl() {
     .eq('user_id', user.id);
   const wsIdByName = Object.fromEntries((wsList || []).map(w => [String(w.name), w.id]));
 
-  const isUuid = (s) => /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(String(s || ''));
-
   for (const coll of (idbCollections || [])) {
     const localCid = coll.id;
     // Determine workspace name: from IDB spaceId -> spaces[].name, or from chrome.storage local 'workspace' key
@@ -129,24 +127,14 @@ async function _syncAllImpl() {
     };
 
     let remoteCollId = null;
-    if (isUuid(localCid)) {
-      const { data, error } = await supabase
-        .from('collections')
-        .upsert({ id: localCid, ...baseRow })
-        .select('id')
-        .maybeSingle();
-      if (error) throw new Error(`Collections upsert failed: ${error.message}`);
-      remoteCollId = data?.id || localCid;
-    } else {
-      // Insert new collection row and capture generated id
-      const { data, error } = await supabase
-        .from('collections')
-        .insert(baseRow)
-        .select('id')
-        .maybeSingle();
-      if (error) throw new Error(`Collections insert failed: ${error.message}`);
-      remoteCollId = data?.id;
-    }
+    // Always use upsert with the local ID to ensure collections are synced properly
+    const { data, error } = await supabase
+      .from('collections')
+      .upsert({ id: localCid, ...baseRow })
+      .select('id')
+      .maybeSingle();
+    if (error) throw new Error(`Collections upsert failed: ${error.message}`);
+    remoteCollId = data?.id || localCid;
 
     // Replace tabs for this collection id
     const tabs = Array.isArray(coll.tabs) ? coll.tabs : [];

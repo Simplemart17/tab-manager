@@ -4,6 +4,7 @@ import dbService from './db.js';
 class DataService {
   constructor() {
     this.initialized = false;
+    this.autoSyncEnabled = true; // Enable auto-sync by default
   }
 
   async init() {
@@ -18,6 +19,35 @@ class DataService {
     }
 
     this.initialized = true;
+  }
+
+  /**
+   * Auto-sync helper: Triggers background sync to Supabase after local changes
+   * This is non-blocking and handles errors silently
+   * Only syncs if user is signed in
+   */
+  async autoSync() {
+    if (!this.autoSyncEnabled) return;
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { getCurrentUser } = await import('./supabaseClient.js');
+      const { syncAll } = await import('./sync-service.js');
+
+      const user = await getCurrentUser();
+      if (!user) {
+        // User not signed in, skip sync (offline mode)
+        return;
+      }
+
+      // Trigger sync in background (non-blocking)
+      syncAll().catch(err => {
+        console.warn('Auto-sync failed:', err.message);
+      });
+    } catch (error) {
+      // Silently handle errors to not disrupt user operations
+      console.warn('Auto-sync error:', error.message);
+    }
   }
 
   async createDefaultSpaces() {
@@ -51,7 +81,12 @@ class DataService {
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
-    return dbService.addSpace(space);
+    const result = await dbService.addSpace(space);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async updateSpace(id, updates) {
@@ -65,7 +100,12 @@ class DataService {
       updatedAt: Date.now()
     };
 
-    return dbService.updateSpace(updatedSpace);
+    const result = await dbService.updateSpace(updatedSpace);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async deleteSpace(id) {
@@ -79,7 +119,12 @@ class DataService {
     }
 
     // Delete the space
-    return dbService.deleteSpace(id);
+    const result = await dbService.deleteSpace(id);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async deleteSpaceWithMigration(spaceId, targetSpaceId) {
@@ -113,7 +158,12 @@ class DataService {
     }
 
     // Delete the space
-    return dbService.deleteSpace(spaceId);
+    const result = await dbService.deleteSpace(spaceId);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async migrateCollectionsToSpace(sourceSpaceId, targetSpaceId) {
@@ -133,6 +183,9 @@ class DataService {
         updatedAt: Date.now()
       });
     }
+
+    // Auto-sync to Supabase
+    this.autoSync();
 
     return collections.length;
   }
@@ -163,7 +216,12 @@ class DataService {
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
-    return dbService.addCollection(collection);
+    const result = await dbService.addCollection(collection);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async updateCollection(id, updates) {
@@ -177,12 +235,22 @@ class DataService {
       updatedAt: Date.now()
     };
 
-    return dbService.updateCollection(updatedCollection);
+    const result = await dbService.updateCollection(updatedCollection);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async deleteCollection(id) {
     await this.init();
-    return dbService.deleteCollection(id);
+    const result = await dbService.deleteCollection(id);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async addTabToCollection(collectionId, tab) {
@@ -204,7 +272,12 @@ class DataService {
       updatedAt: Date.now()
     };
 
-    return dbService.updateCollection(updatedCollection);
+    const result = await dbService.updateCollection(updatedCollection);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async removeTabFromCollection(tabId, collectionId) {
@@ -218,7 +291,12 @@ class DataService {
       updatedAt: Date.now()
     };
 
-    return dbService.updateCollection(updatedCollection);
+    const result = await dbService.updateCollection(updatedCollection);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   async moveTabBetweenCollections(sourceCollectionId, targetCollectionId, tabId) {
@@ -251,7 +329,12 @@ class DataService {
 
     // Update both collections
     await dbService.updateCollection(updatedSourceCollection);
-    return dbService.updateCollection(updatedTargetCollection);
+    const result = await dbService.updateCollection(updatedTargetCollection);
+
+    // Auto-sync to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   // Settings methods
@@ -302,10 +385,12 @@ class DataService {
       await dbService.deleteCollection(collection.id);
     }
 
+    let result;
+
     // Determine the format and process accordingly
     if (data.groups && Array.isArray(data.groups)) {
       // This is the custom format with groups, lists, and cards
-      return this._importCustomFormat(data);
+      result = await this._importCustomFormat(data);
     } else if (data.spaces && data.collections) {
       // Import spaces
       for (const space of data.spaces) {
@@ -322,10 +407,15 @@ class DataService {
         await dbService.updateSettings(data.settings);
       }
 
-      return { success: true };
+      result = { success: true };
     } else {
       throw new Error('Unrecognized data format for import');
     }
+
+    // Auto-sync imported data to Supabase
+    this.autoSync();
+
+    return result;
   }
 
   // Private method for importing custom format
