@@ -172,6 +172,76 @@ async function _syncAllImpl() {
     if (histErr) throw new Error(`History insert failed: ${histErr.message}`);
   }
 
+  // Delete collections from Supabase that no longer exist locally
+  const localCollectionIds = new Set((idbCollections || []).map(c => c.id));
+  const { data: remoteCollections } = await supabase
+    .from('collections')
+    .select('id')
+    .eq('user_id', user.id);
+
+  if (remoteCollections && remoteCollections.length > 0) {
+    const collectionsToDelete = remoteCollections
+      .filter(rc => !localCollectionIds.has(rc.id))
+      .map(rc => rc.id);
+
+    if (collectionsToDelete.length > 0) {
+      // Delete tabs first (foreign key constraint)
+      await supabase
+        .from('tabs')
+        .delete()
+        .in('collection_id', collectionsToDelete);
+
+      // Then delete collections
+      await supabase
+        .from('collections')
+        .delete()
+        .in('id', collectionsToDelete);
+    }
+  }
+
+  // Delete workspaces from Supabase that no longer exist locally
+  const localSpaceNames = new Set((spaces || []).map(s => s.name));
+  const { data: remoteWorkspaces } = await supabase
+    .from('workspaces')
+    .select('id, name')
+    .eq('user_id', user.id);
+
+  if (remoteWorkspaces && remoteWorkspaces.length > 0) {
+    const workspacesToDelete = remoteWorkspaces
+      .filter(rw => !localSpaceNames.has(rw.name))
+      .map(rw => rw.id);
+
+    if (workspacesToDelete.length > 0) {
+      // Get collections in these workspaces
+      const { data: collectionsInWorkspaces } = await supabase
+        .from('collections')
+        .select('id')
+        .in('workspace_id', workspacesToDelete);
+
+      if (collectionsInWorkspaces && collectionsInWorkspaces.length > 0) {
+        const collectionIds = collectionsInWorkspaces.map(c => c.id);
+
+        // Delete tabs first
+        await supabase
+          .from('tabs')
+          .delete()
+          .in('collection_id', collectionIds);
+
+        // Delete collections
+        await supabase
+          .from('collections')
+          .delete()
+          .in('workspace_id', workspacesToDelete);
+      }
+
+      // Finally delete workspaces
+      await supabase
+        .from('workspaces')
+        .delete()
+        .in('id', workspacesToDelete);
+    }
+  }
+
   return { ok: true };
 }
 
