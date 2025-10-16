@@ -137,9 +137,9 @@ const bulkDeleteTabsBtn = document.getElementById("bulk-delete-tabs");
 // State
 let currentTabs = [];
 let selectedTabs = [];
-let activeWorkspace = "personal";
+let activeWorkspace = "";
 let userPreferences = {
-  theme: "light",
+  theme: "dark",
   autoSaveEnabled: true,
 };
 let isSearchActive = false;

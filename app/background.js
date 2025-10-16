@@ -32,7 +32,7 @@ const safeApiCall = async (apiCall) => {
 let collections = {};
 let syncedTabs = {};
 let userPreferences = {
-  theme: 'light',
+  theme: 'dark',
   syncEnabled: true,
   autoSaveEnabled: true
 };

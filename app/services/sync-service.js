@@ -68,27 +68,6 @@ async function _syncAllImpl() {
     }
   }
 
-
-
-  // Ensure default workspace exists (without relying on unique constraint)
-  let personalId = null;
-  const { data: existingWs, error: wsErr } = await supabase
-    .from('workspaces')
-    .select('id')
-    .eq('name', 'Personal')
-    .limit(1)
-    .maybeSingle();
-  if (existingWs?.id) {
-    personalId = existingWs.id;
-  } else {
-    const { data: inserted, error: insErr } = await supabase
-      .from('workspaces')
-      .insert({ user_id: user.id, name: 'Personal', color: '#ff5c8d', updated_at: nowIso() })
-      .select('id')
-      .maybeSingle();
-    if (!insErr) personalId = inserted?.id || null;
-  }
-
   // Upsert collections and tabs (prefer IndexedDB; fallback to chrome.storage.local)
   let idbCollections = await dataService.getCollections();
   if (!idbCollections || idbCollections.length === 0) {
@@ -106,17 +85,23 @@ async function _syncAllImpl() {
 
   for (const coll of (idbCollections || [])) {
     const localCid = coll.id;
-    // Determine workspace name: from IDB spaceId -> spaces[].name, or from chrome.storage local 'workspace' key
-    let wsName = 'Personal';
+    // Determine workspace name from the collection's spaceId
+    let wsName = null;
+    let wsId = null;
+
     if (coll.spaceId) {
       const space = (spaces || []).find(s => s.id === coll.spaceId);
-      wsName = space?.name || 'Personal';
-    } else if (coll.workspace) {
-      // Map canonical keys like 'personal' to display name
-      const key = String(coll.workspace).toLowerCase();
-      wsName = key === 'work' ? 'Work' : key === 'research' ? 'Research' : 'Personal';
+      if (space) {
+        wsName = space.name;
+        wsId = wsIdByName[wsName] || null;
+      }
     }
-    const wsId = wsIdByName[wsName] || personalId || null;
+
+    // If no workspace found, skip this collection (it has an invalid spaceId)
+    if (!wsId) {
+      console.warn(`Collection "${coll.name}" has invalid spaceId "${coll.spaceId}", skipping sync`);
+      continue;
+    }
 
     const baseRow = {
       user_id: user.id,
@@ -278,10 +263,7 @@ export async function pullAll() {
     for (const ws of remoteWs) {
       const name = ws.name;
       const color = ws.color || '#914CE6';
-      const localId = name.toLowerCase() === 'personal' ? 'personal'
-        : name.toLowerCase() === 'work' ? 'work'
-        : name.toLowerCase() === 'research' ? 'research'
-        : slugify(name);
+      const localId = slugify(name);
 
       wsIdToLocalSpaceId[ws.id] = localId;
 
@@ -351,7 +333,7 @@ export async function pullAll() {
         favicon: t.favicon || ''
       }));
 
-    const spaceId = wsIdToLocalSpaceId[c.workspace_id] || 'personal';
+    const spaceId = wsIdToLocalSpaceId[c.workspace_id];
     const remoteUpdatedAt = c.updated_at ? new Date(c.updated_at).getTime() : Date.now();
 
     const existingCollection = existingCollectionsMap[c.id];

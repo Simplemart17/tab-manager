@@ -38,10 +38,10 @@ const saveSettingsBtn = document.getElementById('save-settings');
 let currentTabs = [];
 let collections = {};
 let selectedTabs = [];
-let activeWorkspace = 'personal';
+let activeWorkspace = '';
 let workspaces = [];
 let userPreferences = {
-  theme: 'light',
+  theme: 'dark',
   syncEnabled: true,
   autoSaveEnabled: true
 };
@@ -137,11 +137,9 @@ async function loadCollections() {
 async function loadWorkspaces() {
   try {
     workspaces = await dataService.getSpaces();
-    if (!workspaces || workspaces.length === 0) {
-      workspaces = [{ id: 'personal', name: 'Personal', color: '#ff5c8d' }];
-    }
+
     if (!activeWorkspace || !workspaces.find(w => w.id === activeWorkspace)) {
-      activeWorkspace = workspaces[0].id;
+      activeWorkspace = workspaces[0]?.id || '';
     }
     renderWorkspaces();
     populateWorkspaceSelect();

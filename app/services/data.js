@@ -12,9 +12,9 @@ class DataService {
 
     await dbService.init();
 
-    // Initialize default spaces if none exist
+    // Initialize default spaces if none exist (shouldn't happen)
     const spaces = await dbService.getSpaces();
-    if (spaces.length === 0) {
+    if (!spaces || spaces.length === 0) {
       await this.createDefaultSpaces();
     }
 
@@ -51,11 +51,7 @@ class DataService {
   }
 
   async createDefaultSpaces() {
-    const defaults = [
-      { id: 'personal', name: 'Personal', color: '#ff5c8d', createdAt: Date.now() },
-      { id: 'work', name: 'Work', color: '#4caf50', createdAt: Date.now() },
-      { id: 'research', name: 'Research', color: '#ff9800', createdAt: Date.now() }
-    ];
+    const defaults = [];
     for (const s of defaults) {
       await dbService.addSpace(s);
     }

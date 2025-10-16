@@ -107,7 +107,7 @@ class IndexedDBService {
     if (!settings) {
       const defaultSettings = {
         id: 'userSettings',
-        theme: 'light',
+        theme: 'dark',
         autoSaveEnabled: true
       };
       await this.add('settings', defaultSettings);
