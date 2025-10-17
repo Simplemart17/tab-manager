@@ -37,7 +37,7 @@ fi
 
 OUT_DIR="release"
 mkdir -p "$OUT_DIR"
-OUT_ZIP="$OUT_DIR/simple-tab-plus-v${VERSION}.zip"
+OUT_ZIP="$ROOT_DIR/$OUT_DIR/simple-tab-plus-v${VERSION}.zip"
 
 # Files/folders to include in the ZIP. Adjust as needed if you add new top-level assets.
 INCLUDES=(
@@ -60,12 +60,6 @@ done
 
 # Zip from the staging directory to ensure only desired content is included
 (cd "$STAGE_DIR" && zip -r -q "$OUT_ZIP" .)
-
-# Move ZIP back to OUT_DIR if zip created it inside staging
-if [[ -f "$STAGE_DIR/$OUT_ZIP" ]]; then
-  mkdir -p "$(dirname "$OUT_ZIP")"
-  mv "$STAGE_DIR/$OUT_ZIP" "$OUT_ZIP"
-fi
 
 echo "Packaged extension -> $OUT_ZIP"
 
