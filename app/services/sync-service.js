@@ -233,7 +233,6 @@ async function _syncAllImpl() {
 export async function pullAll() {
   // Don't pull if sync is in progress to avoid race conditions
   if (isSyncing) {
-    console.log('Skipping pullAll - sync in progress');
     return { ok: true, skipped: true };
   }
 
