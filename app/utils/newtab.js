@@ -307,6 +307,11 @@ async function loadSpaces() {
   try {
     const spaces = await dataService.getSpaces();
 
+    // Set first space as default active workspace if not already set
+    if (!activeWorkspace && spaces && spaces.length > 0) {
+      activeWorkspace = spaces[0].id;
+    }
+
     // Update workspaces list
     renderWorkspaces(spaces);
 
