@@ -1,6 +1,6 @@
 // Background script for Tab Manager
 import { syncAll, pullAll, startRealtime, stopRealtime } from './services/sync-service.js';
-import { signUp, signIn, signOut, getSession } from './services/auth-service.js';
+import { signUp, signIn, signOut, getSession, validateSession } from './services/auth-service.js';
 import { migrateLocalToCloud } from './services/migration-service.js';
 const SYNC_INTERVAL = 30000; // 30 seconds
 let realtimeDispose = null;
@@ -33,7 +33,7 @@ let collections = {};
 let syncedTabs = {};
 let userPreferences = {
   theme: 'dark',
-  syncEnabled: true,
+  syncEnabled: false, // Disable sync by default - user must explicitly enable
   autoSaveEnabled: true
 };
 
@@ -263,16 +263,22 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       if (request.action === 'authRegister') {
         const { data, error } = await signUp({ email: request.email, password: request.password });
         if (error) throw new Error(error.message);
-        await migrateLocalToCloud();
-        if (realtimeDispose) { try { realtimeDispose(); } catch (_) {} }
-        realtimeDispose = startRealtime();
+        // Only migrate and start realtime if sync is enabled
+        if (userPreferences.syncEnabled) {
+          await migrateLocalToCloud();
+          if (realtimeDispose) { try { realtimeDispose(); } catch (_) {} }
+          realtimeDispose = startRealtime();
+        }
         sendResponse({ success: true, data });
       } else if (request.action === 'authLogin') {
         const { data, error } = await signIn({ email: request.email, password: request.password });
         if (error) throw new Error(error.message);
         if (realtimeDispose) { try { realtimeDispose(); } catch (_) {} }
-        realtimeDispose = startRealtime();
-        await pullAll();
+        // Only start realtime and pull data if sync is enabled
+        if (userPreferences.syncEnabled) {
+          realtimeDispose = startRealtime();
+          await pullAll();
+        }
         sendResponse({ success: true, data });
       } else if (request.action === 'authLogout') {
         await signOut();
@@ -281,9 +287,13 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         stopRealtime();
         sendResponse({ success: true });
       } else if (request.action === 'authGetSession') {
-        const { data, error } = await getSession();
-        if (error) throw new Error(error.message);
-        sendResponse({ success: true, data });
+        const sessionResult = await validateSession();
+        if (sessionResult.valid) {
+          sendResponse({ success: true, data: { session: sessionResult.session } });
+        } else {
+          // Don't throw error for invalid session, just return null
+          sendResponse({ success: true, data: { session: null } });
+        }
       }
     } catch (e) {
       respondErr(e);
@@ -298,8 +308,11 @@ chrome.runtime.onStartup.addListener(async () => {
     const { data } = await getSession();
     if (data?.session?.user) {
       if (realtimeDispose) { try { realtimeDispose(); } catch (_) {} }
-      realtimeDispose = startRealtime();
-      await pullAll();
+      // Only start realtime if sync is enabled
+      if (userPreferences.syncEnabled) {
+        realtimeDispose = startRealtime();
+        await pullAll();
+      }
     }
   } catch (_) {}
 });
