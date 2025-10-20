@@ -629,11 +629,21 @@ function syncTabs() {
     chrome.runtime.sendMessage({ action: 'syncTabs' });
     return;
   }
-  // Show syncing animation
+  
+  // Prevent multiple sync operations
+  if (syncBtn.classList.contains('syncing')) return;
+  
+  // Add syncing state - this will trigger the CSS animation and disable the button
   syncBtn.classList.add('syncing');
-  chrome.runtime.sendMessage({ action: 'syncTabs' }, () => {
+  syncBtn.disabled = true;
+  
+  chrome.runtime.sendMessage({ action: 'syncTabs' }, (response) => {
+    // Remove syncing state after a minimum duration to ensure user sees the animation
     setTimeout(() => {
-      if (syncBtn) syncBtn.classList.remove('syncing');
+      if (syncBtn) {
+        syncBtn.classList.remove('syncing');
+        syncBtn.disabled = false;
+      }
     }, 1000);
   });
 }
