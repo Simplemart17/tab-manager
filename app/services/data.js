@@ -4,19 +4,13 @@ import dbService from './db.js';
 class DataService {
   constructor() {
     this.initialized = false;
-    this.autoSyncEnabled = true; // Enable auto-sync by default
+    this.autoSyncEnabled = false; // Disable auto-sync by default - user must explicitly enable
   }
 
   async init() {
     if (this.initialized) return;
 
     await dbService.init();
-
-    // Initialize default spaces if none exist (shouldn't happen)
-    const spaces = await dbService.getSpaces();
-    if (!spaces || spaces.length === 0) {
-      await this.createDefaultSpaces();
-    }
 
     this.initialized = true;
   }
