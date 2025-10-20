@@ -5,6 +5,16 @@ import dbService from './db.js';
 function nowIso() { return new Date().toISOString(); }
 function slugify(name) { return String(name || '').toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,''); }
 
+// Global flag to disable sync operations
+let SYNC_DISABLED = false;
+
+// Helper function to toggle sync mode
+export function toggleSyncMode() {
+  SYNC_DISABLED = !SYNC_DISABLED;
+  console.log(`Sync ${SYNC_DISABLED ? 'DISABLED' : 'ENABLED'}`);
+  return !SYNC_DISABLED;
+}
+
 // Sync lock to prevent pullAll from running during syncAll
 let isSyncing = false;
 
@@ -14,6 +24,11 @@ async function ensureProfile(supabase, user) {
 }
 
 export async function syncAll() {
+  if (SYNC_DISABLED) {
+    console.log('SYNC DISABLED - syncAll skipped');
+    return { ok: true, skipped: true, reason: 'Sync disabled' };
+  }
+  
   // Set sync lock
   isSyncing = true;
   try {
@@ -231,6 +246,11 @@ async function _syncAllImpl() {
 }
 
 export async function pullAll() {
+  if (SYNC_DISABLED) {
+    console.log('SYNC DISABLED - pullAll skipped');
+    return { ok: true, skipped: true, reason: 'Sync disabled' };
+  }
+  
   // Don't pull if sync is in progress to avoid race conditions
   if (isSyncing) {
     return { ok: true, skipped: true };
@@ -402,6 +422,11 @@ export async function pullAll() {
 }
 
 export function startRealtime() {
+  if (SYNC_DISABLED) {
+    console.log('SYNC DISABLED - startRealtime skipped');
+    return () => {};
+  }
+  
   const supabase = getSupabase();
   if (!supabase) return () => {};
 
