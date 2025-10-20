@@ -149,22 +149,96 @@ let currentCollectionForAction = null;
 let bulkSelectedTabs = new Set();
 let isBulkSelectMode = false;
 
+// Authentication helper function with retry logic
+async function checkAuthenticationWithRetry(maxRetries = 3, delayMs = 1000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Authentication check attempt ${attempt}/${maxRetries}`);
+      
+      const sessionResp = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Session check timeout'));
+        }, 5000); // 5 second timeout
+        
+        chrome.runtime.sendMessage({ action: "authGetSession" }, (response) => {
+          clearTimeout(timeout);
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+      
+      if (sessionResp?.success && sessionResp?.data?.session?.user) {
+        return {
+          authenticated: true,
+          user: sessionResp.data.session.user,
+          session: sessionResp.data.session
+        };
+      }
+      
+      // If we get a successful response but no session, user is not authenticated
+      if (sessionResp?.success && !sessionResp?.data?.session) {
+        console.log('No active session found');
+        return { authenticated: false, user: null, session: null };
+      }
+      
+      // If we get an error response, log it and potentially retry
+      if (sessionResp?.error) {
+        console.warn(`Session check failed (attempt ${attempt}):`, sessionResp.error);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue;
+        }
+      }
+      
+    } catch (error) {
+      console.error(`Authentication check error (attempt ${attempt}):`, error);
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+    }
+  }
+  
+  // All retries failed
+  console.error('All authentication attempts failed');
+  return { authenticated: false, user: null, session: null };
+}
+
+// Session monitoring function to handle session expiration gracefully
+function startSessionMonitoring() {
+  // Check session every 5 minutes
+  setInterval(async () => {
+    try {
+      const sessionResult = await checkAuthenticationWithRetry(1, 0); // Single attempt, no delay
+      if (!sessionResult.authenticated) {
+        console.log('Session expired, redirecting to login');
+        showNotification('Your session has expired. Please log in again.', 'warning');
+        setTimeout(() => {
+          window.location.href = chrome.runtime.getURL("app/pages/auth.html#signin");
+        }, 2000);
+      }
+    } catch (error) {
+      console.warn('Session monitoring check failed:', error);
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+}
+
 // Initialize
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    // If not authenticated, redirect to auth page
-    const sessionResp = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: "authGetSession" }, (r) =>
-        resolve(r)
-      );
-    });
-    const signedIn = !!sessionResp?.data?.session?.user;
-    if (!signedIn) {
-      window.location.href = chrome.runtime.getURL(
-        "app/pages/auth.html#signin"
-      );
+    // Check authentication with retry logic
+    const sessionResult = await checkAuthenticationWithRetry();
+    
+    if (!sessionResult.authenticated) {
+      console.log('User not authenticated, redirecting to login');
+      window.location.href = chrome.runtime.getURL("app/pages/auth.html#signin");
       return;
     }
+    
+    console.log('User authenticated successfully:', sessionResult.user?.email);
     // Update header user UI
     const userNameEl = document.getElementById('user-name');
     const userAvatarEl = document.getElementById('user-avatar');
@@ -172,7 +246,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const userMenu = document.getElementById('user-menu');
     const userProfile = document.getElementById('user-profile');
     const logoutLink = document.getElementById('logout-link');
-    const user = sessionResp?.data?.session?.user;
+    const user = sessionResult.user;
     const displayName = (user?.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user?.email || 'User';
     if (userNameEl) userNameEl.textContent = displayName;
     if (userAvatarEl) userAvatarEl.textContent = (displayName || '?').trim().charAt(0).toUpperCase();
@@ -267,6 +341,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         loadOpenTabs();
       }
     });
+
+    // Start session monitoring for authenticated users
+    startSessionMonitoring();
   } catch (error) {
     console.error("Error initializing app:", error);
   }
@@ -1455,12 +1532,28 @@ function setActiveWorkspace(workspaceId) {
 // Sync tabs
 function syncTabs() {
   if (!syncBtn) return;
+  
+  // Prevent multiple sync operations
+  if (syncBtn.classList.contains("syncing")) {
+    console.debug("Sync already in progress, ignoring click");
+    return;
+  }
+  
+  console.debug("Starting sync animation");
+  // Add syncing state - this will trigger the CSS animation and disable the button
   syncBtn.classList.add("syncing");
-  chrome.runtime.sendMessage({ action: "syncTabs" }, () => {
+  syncBtn.disabled = true;
+  
+  chrome.runtime.sendMessage({ action: "syncTabs" }, (response) => {
     // Refresh visible tabs after background sync completes
     loadOpenTabs();
+    
+    // Remove syncing state after a minimum duration to ensure user sees the animation
     setTimeout(() => {
-      if (syncBtn) syncBtn.classList.remove("syncing");
+      if (syncBtn) {
+        syncBtn.classList.remove("syncing");
+        syncBtn.disabled = false;
+      }
     }, 1000);
   });
 }
