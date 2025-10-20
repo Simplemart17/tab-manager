@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@100..900&family=Lavishly+Yours&display=swap");
+@import url("./fonts.css");
 
 /* App Logo */
 .app-logo {
@@ -176,6 +176,45 @@ body {
 
 .small-button:hover {
   background-color: var(--border-color);
+}
+
+/* Sync button specific styles */
+#sync-btn {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+#sync-btn svg {
+  transition: transform 0.2s ease;
+}
+
+/* Spinning animation for sync button */
+#sync-btn.syncing svg {
+  animation: spin 1s linear infinite;
+}
+
+/* Disabled state for sync button */
+#sync-btn:disabled,
+#sync-btn.syncing {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+#sync-btn:disabled:hover,
+#sync-btn.syncing:hover {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+/* Keyframe animation for spinning */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tabs-list {
