@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SimpleTab Plus",
-  "version": "1.0.0",
-  "description": "Advanced tab management with cloud sync and team collaboration",
+  "version": "1.0.1",
+  "description": "Advanced tab management with cloud sync",
   "icons": {
     "16": "app/assets/icons/icon16.png",
     "48": "app/assets/icons/icon48.png",
@@ -55,7 +55,7 @@
     "<all_urls>"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://anoylxzjeatvusegpzmy.supabase.co wss://anoylxzjeatvusegpzmy.supabase.co; img-src 'self' data: https://*;"
+    "extension_pages": "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self'; object-src 'self'; connect-src 'self' https://anoylxzjeatvusegpzmy.supabase.co wss://anoylxzjeatvusegpzmy.supabase.co; img-src 'self' data: https://*; font-src 'self' data:;"
   },
   "web_accessible_resources": [{
     "resources": ["assets/*", "app/assets/*"],
