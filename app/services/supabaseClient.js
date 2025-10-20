@@ -11,6 +11,34 @@ export function getSupabase() {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: false,
+        // Chrome extension specific storage configuration
+        storage: {
+          getItem: async (key) => {
+            try {
+              const result = await chrome.storage.local.get([key]);
+              return result[key] || null;
+            } catch (error) {
+              console.warn('Failed to get item from storage:', error);
+              return null;
+            }
+          },
+          setItem: async (key, value) => {
+            try {
+              await chrome.storage.local.set({ [key]: value });
+            } catch (error) {
+              console.warn('Failed to set item in storage:', error);
+            }
+          },
+          removeItem: async (key) => {
+            try {
+              await chrome.storage.local.remove([key]);
+            } catch (error) {
+              console.warn('Failed to remove item from storage:', error);
+            }
+          }
+        },
+        // Increase session refresh threshold for better persistence
+        sessionRefreshThreshold: 300, // 5 minutes before expiry
       },
     });
   }
