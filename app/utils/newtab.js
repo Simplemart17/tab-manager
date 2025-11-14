@@ -71,9 +71,9 @@ const confirmSaveBtn = document.getElementById("confirm-save");
 
 // Settings Modal
 const themeSelect = document.getElementById("theme-select");
-const autoSaveEnabledCheck = document.getElementById("auto-save-enabled");
 const cancelSettingsBtn = document.getElementById("cancel-settings");
 const saveSettingsBtn = document.getElementById("save-settings");
+const colorThemeButtons = document.querySelectorAll(".color-theme-btn");
 
 // Workspace Modal
 const workspaceNameInput = document.getElementById("workspace-name");
@@ -159,6 +159,7 @@ let isBulkSelectMode = false;
 let spacesSortAscending = true; // Track sort order for spaces
 let tabToMove = null; // Track the tab being moved
 let collectionOfTabToMove = null; // Track the collection of the tab being moved
+let selectedColorTheme = "purple"; // Track selected color theme
 
 /**
  * Authentication helper function with retry logic
@@ -389,7 +390,7 @@ async function loadUserPreferences() {
     const settings = await dataService.getSettings();
     userPreferences = settings;
 
-    // Apply theme
+    // Apply theme mode
     if (userPreferences.theme === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     } else if (userPreferences.theme === "light") {
@@ -405,9 +406,21 @@ async function loadUserPreferences() {
       }
     }
 
+    // Apply color theme
+    const colorTheme = userPreferences.colorTheme || "purple";
+    selectedColorTheme = colorTheme;
+    document.documentElement.setAttribute("data-color-theme", colorTheme);
+
     // Update form elements
     themeSelect.value = userPreferences.theme;
-    autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
+
+    // Update color theme button selection
+    colorThemeButtons.forEach((btn) => {
+      btn.classList.remove("active");
+      if (btn.dataset.color === colorTheme) {
+        btn.classList.add("active");
+      }
+    });
   } catch (error) {
     console.error("Error loading user preferences:", error);
   }
@@ -1021,6 +1034,21 @@ function setupEventListeners() {
     saveSettings();
   });
 
+  // Color theme buttons
+  colorThemeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const colorTheme = btn.dataset.color;
+      selectedColorTheme = colorTheme;
+
+      // Update active state
+      colorThemeButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // Apply color theme immediately
+      document.documentElement.setAttribute("data-color-theme", colorTheme);
+    });
+  });
+
   // Export data button
   exportDataBtn.addEventListener("click", () => {
     exportData();
@@ -1614,7 +1642,7 @@ async function saveSettings() {
   try {
     const updatedPreferences = {
       theme: themeSelect.value,
-      autoSaveEnabled: autoSaveEnabledCheck.checked,
+      colorTheme: selectedColorTheme,
     };
 
     // Update settings in database
@@ -1623,7 +1651,7 @@ async function saveSettings() {
     // Update local state
     userPreferences = updatedPreferences;
 
-    // Apply theme
+    // Apply theme mode
     if (userPreferences.theme === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     } else if (userPreferences.theme === "light") {
@@ -1638,6 +1666,9 @@ async function saveSettings() {
         document.documentElement.setAttribute("data-theme", "light");
       }
     }
+
+    // Apply color theme
+    document.documentElement.setAttribute("data-color-theme", selectedColorTheme);
 
     hideSettingsModal();
 

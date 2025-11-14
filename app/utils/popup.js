@@ -27,8 +27,6 @@ const confirmSaveBtn = document.getElementById('confirm-save');
 
 // Settings Modal
 const themeSelect = document.getElementById('theme-select');
-const syncEnabledCheck = document.getElementById('sync-enabled');
-const autoSaveEnabledCheck = document.getElementById('auto-save-enabled');
 const cancelSettingsBtn = document.getElementById('cancel-settings');
 const saveSettingsBtn = document.getElementById('save-settings');
 
@@ -113,8 +111,6 @@ async function loadUserPreferences() {
 
       // Update form elements
       themeSelect.value = userPreferences.theme;
-      syncEnabledCheck.checked = userPreferences.syncEnabled;
-      autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
     }
   } catch (error) {
     handleChromeError(error);
@@ -584,9 +580,7 @@ function deleteCollection(collectionId) {
 // Save settings
 function saveSettings() {
   userPreferences = {
-    theme: themeSelect.value,
-    syncEnabled: syncEnabledCheck.checked,
-    autoSaveEnabled: autoSaveEnabledCheck.checked
+    theme: themeSelect.value
   };
 
   chrome.storage.local.set({ userPreferences }, () => {
