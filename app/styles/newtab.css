@@ -744,6 +744,20 @@ button[title]:hover::after {
   text-overflow: ellipsis;
 }
 
+.collection-tab-actions-left {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.collection-tab-card:hover .collection-tab-actions-left {
+  opacity: 1;
+}
+
 .collection-tab-actions {
   position: absolute;
   top: 8px;

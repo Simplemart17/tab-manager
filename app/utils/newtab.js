@@ -774,15 +774,12 @@ function createCollectionTabCard(tab, collectionId) {
   infoSection.appendChild(title);
   infoSection.appendChild(subtitleElement);
 
-  // Create actions
-  const actions = document.createElement("div");
-  actions.className = "collection-tab-actions";
-
+  // Create move button (left side)
   const moveBtn = document.createElement("button");
   moveBtn.className = "collection-tab-btn move";
   moveBtn.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" 
-      viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="12" y1="3" x2="12" y2="21"></line>
       <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -792,12 +789,20 @@ function createCollectionTabCard(tab, collectionId) {
       <polyline points="6 9 3 12 6 15"></polyline>
     </svg>
   `;
-
   moveBtn.title = "Move to another collection";
   moveBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showMoveTabModal(tab, collectionId);
   });
+
+  // Create left actions container
+  const leftActions = document.createElement("div");
+  leftActions.className = "collection-tab-actions-left";
+  leftActions.appendChild(moveBtn);
+
+  // Create right actions (open and delete)
+  const actions = document.createElement("div");
+  actions.className = "collection-tab-actions";
 
   const openBtn = document.createElement("button");
   openBtn.className = "collection-tab-btn";
@@ -829,11 +834,11 @@ function createCollectionTabCard(tab, collectionId) {
     card.remove();
   });
 
-  actions.appendChild(moveBtn);
   actions.appendChild(openBtn);
   actions.appendChild(deleteBtn);
 
   // Assemble the card
+  card.appendChild(leftActions);
   card.appendChild(iconSection);
   card.appendChild(infoSection);
   card.appendChild(actions);
