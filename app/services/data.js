@@ -18,7 +18,9 @@ class DataService {
   /**
    * Auto-sync helper: Triggers background sync to Supabase after local changes
    * This is non-blocking and handles errors silently
-   * Only syncs if user is signed in
+   *
+   * NOTE: This app requires authentication. All users must be logged in.
+   * If user is not signed in, this should not happen as the app enforces auth.
    */
   async autoSync() {
     if (!this.autoSyncEnabled) return;
@@ -30,7 +32,8 @@ class DataService {
 
       const user = await getCurrentUser();
       if (!user) {
-        // User not signed in, skip sync (offline mode)
+        // User should always be authenticated in this app
+        console.warn('Auto-sync skipped: User not authenticated');
         return;
       }
 
@@ -364,15 +367,19 @@ class DataService {
   async importData(data) {
     await this.init();
 
-    // Clear existing data
+    // Get existing data for duplicate detection
     const existingSpaces = await dbService.getSpaces();
+    const existingCollections = await dbService.getCollections();
+
+    // Create maps for quick lookup
+    const existingSpacesByName = {};
     for (const space of existingSpaces) {
-      await dbService.deleteSpace(space.id);
+      existingSpacesByName[space.name.toLowerCase()] = space;
     }
 
-    const existingCollections = await dbService.getCollections();
+    const existingCollectionsById = {};
     for (const collection of existingCollections) {
-      await dbService.deleteCollection(collection.id);
+      existingCollectionsById[collection.id] = collection;
     }
 
     let result;
@@ -380,24 +387,66 @@ class DataService {
     // Determine the format and process accordingly
     if (data.groups && Array.isArray(data.groups)) {
       // This is the custom format with groups, lists, and cards
-      result = await this._importCustomFormat(data);
+      result = await this._importCustomFormat(data, existingSpacesByName, existingCollectionsById);
     } else if (data.spaces && data.collections) {
-      // Import spaces
+      // Import spaces (skip duplicates by name)
+      let spacesAdded = 0;
       for (const space of data.spaces) {
-        await dbService.addSpace(space);
+        const spaceName = space.name.toLowerCase();
+        if (!existingSpacesByName[spaceName]) {
+          await dbService.addSpace(space);
+          existingSpacesByName[spaceName] = space;
+          spacesAdded++;
+        }
       }
 
-      // Import collections
+      // Import collections (skip duplicates by ID, merge tabs)
+      let collectionsAdded = 0;
+      let tabsAdded = 0;
       for (const collection of data.collections) {
-        await dbService.addCollection(collection);
+        const existingCollection = existingCollectionsById[collection.id];
+
+        if (existingCollection) {
+          // Collection exists - merge tabs (avoid duplicates by URL)
+          const existingTabUrls = new Set(
+            (existingCollection.tabs || []).map(t => t.url.toLowerCase())
+          );
+
+          const newTabs = (collection.tabs || []).filter(
+            tab => !existingTabUrls.has(tab.url.toLowerCase())
+          );
+
+          if (newTabs.length > 0) {
+            const updatedTabs = [...(existingCollection.tabs || []), ...newTabs];
+            await dbService.updateCollection({
+              ...existingCollection,
+              tabs: updatedTabs,
+              updatedAt: Date.now()
+            });
+            tabsAdded += newTabs.length;
+          }
+        } else {
+          // New collection - add it
+          await dbService.addCollection(collection);
+          existingCollectionsById[collection.id] = collection;
+          collectionsAdded++;
+          tabsAdded += (collection.tabs || []).length;
+        }
       }
 
-      // Import settings if available
+      // Import settings if available (merge, don't overwrite)
       if (data.settings) {
-        await dbService.updateSettings(data.settings);
+        const currentSettings = await dbService.getSettings();
+        await dbService.updateSettings({ ...currentSettings, ...data.settings });
       }
 
-      result = { success: true };
+      result = {
+        success: true,
+        spacesAdded,
+        collectionsAdded,
+        tabsAdded,
+        message: `Added ${spacesAdded} spaces, ${collectionsAdded} collections, and ${tabsAdded} tabs. Duplicates were skipped.`
+      };
     } else {
       throw new Error('Unrecognized data format for import');
     }
@@ -409,7 +458,7 @@ class DataService {
   }
 
   // Private method for importing custom format
-  async _importCustomFormat(data) {
+  async _importCustomFormat(data, existingSpacesByName = {}, existingCollectionsById = {}) {
     await this.init();
 
     // Validate data structure
@@ -430,18 +479,28 @@ class DataService {
         continue;
       }
 
-      // Create a space for this group
-      const spaceId = `space-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const space = {
-        id: spaceId,
-        name: group.name,
-        color: this.getRandomColor(),
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
+      // Check if space already exists by name
+      const spaceName = group.name.toLowerCase();
+      let spaceId;
 
-      await dbService.addSpace(space);
-      stats.spaces++;
+      if (existingSpacesByName[spaceName]) {
+        // Use existing space
+        spaceId = existingSpacesByName[spaceName].id;
+      } else {
+        // Create a new space for this group
+        spaceId = `space-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const space = {
+          id: spaceId,
+          name: group.name,
+          color: this.getRandomColor(),
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+
+        await dbService.addSpace(space);
+        existingSpacesByName[spaceName] = space;
+        stats.spaces++;
+      }
 
       // Process each list (collection) in the space
       for (const list of group.lists) {
@@ -449,36 +508,59 @@ class DataService {
           continue;
         }
 
-        // Format tabs from cards
-        const tabs = list.cards.map(card => {
-          if (!card.url) {
-            return null;
-          }
-
-          stats.tabs++;
-
-          return {
+        // Format tabs from cards (filter out invalid ones)
+        const tabs = list.cards
+          .filter(card => card.url)
+          .map(card => ({
             id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
             url: card.url,
             title: card.title || card.url,
             favicon: card.favicon || '',
             description: card.description || '',
             createdAt: Date.now()
+          }));
+
+        // Create a unique collection ID
+        const collectionId = `collection-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+        // Check if a collection with similar name exists in this space
+        const existingCollectionInSpace = Object.values(existingCollectionsById).find(
+          c => c.spaceId === spaceId && c.name.toLowerCase() === list.title.toLowerCase()
+        );
+
+        if (existingCollectionInSpace) {
+          // Merge tabs into existing collection (avoid duplicates by URL)
+          const existingTabUrls = new Set(
+            (existingCollectionInSpace.tabs || []).map(t => t.url.toLowerCase())
+          );
+
+          const newTabs = tabs.filter(tab => !existingTabUrls.has(tab.url.toLowerCase()));
+
+          if (newTabs.length > 0) {
+            const updatedTabs = [...(existingCollectionInSpace.tabs || []), ...newTabs];
+            await dbService.updateCollection({
+              ...existingCollectionInSpace,
+              tabs: updatedTabs,
+              updatedAt: Date.now()
+            });
+            stats.tabs += newTabs.length;
+          }
+        } else {
+          // Create new collection
+          const collection = {
+            id: collectionId,
+            name: list.title,
+            tabs,
+            spaceId,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
           };
-        }).filter(tab => tab !== null); // Remove any invalid tabs
 
-        // Create collection
-        const collection = {
-          id: `collection-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          name: list.title,
-          tabs,
-          spaceId,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-
-        await dbService.addCollection(collection);
-        stats.collections++;
+          await dbService.addCollection(collection);
+          existingCollectionsById[collectionId] = collection;
+          stats.collections++;
+          stats.tabs += tabs.length;
+        }
       }
     }
 

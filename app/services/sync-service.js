@@ -421,12 +421,38 @@ export async function pullAll() {
   return { ok: true };
 }
 
+/**
+ * Bidirectional sync: Push local changes to cloud, then pull remote changes to local
+ * This ensures both local and cloud are in sync
+ */
+export async function bidirectionalSync() {
+  if (SYNC_DISABLED) {
+    console.log('SYNC DISABLED - bidirectionalSync skipped');
+    return { ok: true, skipped: true, reason: 'Sync disabled' };
+  }
+
+  try {
+    // First push local changes to cloud
+    const pushResult = await syncAll();
+    if (!pushResult.ok) {
+      return pushResult;
+    }
+
+    // Then pull remote changes to local
+    const pullResult = await pullAll();
+    return pullResult;
+  } catch (error) {
+    console.error('Bidirectional sync failed:', error);
+    return { ok: false, reason: error.message };
+  }
+}
+
 export function startRealtime() {
   if (SYNC_DISABLED) {
     console.log('SYNC DISABLED - startRealtime skipped');
     return () => {};
   }
-  
+
   const supabase = getSupabase();
   if (!supabase) return () => {};
 

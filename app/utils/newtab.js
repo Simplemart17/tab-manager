@@ -47,6 +47,7 @@ const tabsToggleIcon = document.querySelector(".tabs-toggle-icon");
 // Sidebar elements
 const sidebar = document.querySelector(".sidebar");
 const sidebarToggle = document.getElementById("sidebar-toggle");
+const sortSpacesBtn = document.getElementById("sort-spaces-btn");
 
 // Modals
 const saveCollectionModal = document.getElementById("save-collection-modal");
@@ -60,6 +61,7 @@ const renameCollectionModal = document.getElementById(
 const deleteCollectionModal = document.getElementById(
   "delete-collection-modal"
 );
+const moveTabModal = document.getElementById("move-tab-modal");
 
 // Save Collection Modal
 const collectionNameInput = document.getElementById("collection-name");
@@ -127,6 +129,12 @@ const confirmDeleteCollectionBtn = document.getElementById(
   "confirm-delete-collection"
 );
 
+// Move Tab Modal
+const moveTabSpaceSelect = document.getElementById("move-tab-space");
+const moveTabCollectionSelect = document.getElementById("move-tab-collection");
+const cancelMoveTabBtn = document.getElementById("cancel-move-tab");
+const confirmMoveTabBtn = document.getElementById("confirm-move-tab");
+
 // Bulk Operations
 const bulkOperationsBar = document.getElementById("bulk-operations-bar");
 const bulkSelectedCount = document.getElementById("bulk-selected-count");
@@ -148,18 +156,26 @@ let currentWorkspaceForAction = null;
 let currentCollectionForAction = null;
 let bulkSelectedTabs = new Set();
 let isBulkSelectMode = false;
+let spacesSortAscending = true; // Track sort order for spaces
+let tabToMove = null; // Track the tab being moved
+let collectionOfTabToMove = null; // Track the collection of the tab being moved
 
-// Authentication helper function with retry logic
+/**
+ * Authentication helper function with retry logic
+ *
+ * NOTE: This app requires authentication. All users must be logged in.
+ * If authentication fails, the user is redirected to the login page.
+ */
 async function checkAuthenticationWithRetry(maxRetries = 3, delayMs = 1000) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`Authentication check attempt ${attempt}/${maxRetries}`);
-      
+
       const sessionResp = await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error('Session check timeout'));
+          reject(new Error("Session check timeout"));
         }, 5000); // 5 second timeout
-        
+
         chrome.runtime.sendMessage({ action: "authGetSession" }, (response) => {
           clearTimeout(timeout);
           if (chrome.runtime.lastError) {
@@ -169,41 +185,43 @@ async function checkAuthenticationWithRetry(maxRetries = 3, delayMs = 1000) {
           }
         });
       });
-      
+
       if (sessionResp?.success && sessionResp?.data?.session?.user) {
         return {
           authenticated: true,
           user: sessionResp.data.session.user,
-          session: sessionResp.data.session
+          session: sessionResp.data.session,
         };
       }
-      
+
       // If we get a successful response but no session, user is not authenticated
       if (sessionResp?.success && !sessionResp?.data?.session) {
-        console.log('No active session found');
+        console.log("No active session found");
         return { authenticated: false, user: null, session: null };
       }
-      
+
       // If we get an error response, log it and potentially retry
       if (sessionResp?.error) {
-        console.warn(`Session check failed (attempt ${attempt}):`, sessionResp.error);
+        console.warn(
+          `Session check failed (attempt ${attempt}):`,
+          sessionResp.error
+        );
         if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
           continue;
         }
       }
-      
     } catch (error) {
       console.error(`Authentication check error (attempt ${attempt}):`, error);
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }
     }
   }
-  
+
   // All retries failed
-  console.error('All authentication attempts failed');
+  console.error("All authentication attempts failed");
   return { authenticated: false, user: null, session: null };
 }
 
@@ -214,14 +232,19 @@ function startSessionMonitoring() {
     try {
       const sessionResult = await checkAuthenticationWithRetry(1, 0); // Single attempt, no delay
       if (!sessionResult.authenticated) {
-        console.log('Session expired, redirecting to login');
-        showNotification('Your session has expired. Please log in again.', 'warning');
+        console.log("Session expired, redirecting to login");
+        showNotification(
+          "Your session has expired. Please log in again.",
+          "warning"
+        );
         setTimeout(() => {
-          window.location.href = chrome.runtime.getURL("app/pages/auth.html#signin");
+          window.location.href = chrome.runtime.getURL(
+            "app/pages/auth.html#signin"
+          );
         }, 2000);
       }
     } catch (error) {
-      console.warn('Session monitoring check failed:', error);
+      console.warn("Session monitoring check failed:", error);
     }
   }, 5 * 60 * 1000); // 5 minutes
 }
@@ -231,51 +254,62 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     // Check authentication with retry logic
     const sessionResult = await checkAuthenticationWithRetry();
-    
+
     if (!sessionResult.authenticated) {
-      console.log('User not authenticated, redirecting to login');
-      window.location.href = chrome.runtime.getURL("app/pages/auth.html#signin");
+      console.log("User not authenticated, redirecting to login");
+      window.location.href = chrome.runtime.getURL(
+        "app/pages/auth.html#signin"
+      );
       return;
     }
-    
-    console.log('User authenticated successfully:', sessionResult.user?.email);
+
+    console.log("User authenticated successfully:", sessionResult.user?.email);
     // Update header user UI
-    const userNameEl = document.getElementById('user-name');
-    const userAvatarEl = document.getElementById('user-avatar');
-    const userBtn = document.getElementById('user-btn');
-    const userMenu = document.getElementById('user-menu');
-    const userProfile = document.getElementById('user-profile');
-    const logoutLink = document.getElementById('logout-link');
+    const userNameEl = document.getElementById("user-name");
+    const userAvatarEl = document.getElementById("user-avatar");
+    const userBtn = document.getElementById("user-btn");
+    const userMenu = document.getElementById("user-menu");
+    const userProfile = document.getElementById("user-profile");
+    const logoutLink = document.getElementById("logout-link");
     const user = sessionResult.user;
-    const displayName = (user?.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user?.email || 'User';
+    const displayName =
+      (user?.user_metadata &&
+        (user.user_metadata.full_name || user.user_metadata.name)) ||
+      user?.email ||
+      "User";
     if (userNameEl) userNameEl.textContent = displayName;
-    if (userAvatarEl) userAvatarEl.textContent = (displayName || '?').trim().charAt(0).toUpperCase();
+    if (userAvatarEl)
+      userAvatarEl.textContent = (displayName || "?")
+        .trim()
+        .charAt(0)
+        .toUpperCase();
 
     if (userBtn && userProfile) {
-      userBtn.addEventListener('click', (e) => {
+      userBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const isOpen = userProfile.classList.contains('open');
-        userProfile.classList.toggle('open', !isOpen);
-        userBtn.setAttribute('aria-expanded', String(!isOpen));
-        if (userMenu) userMenu.setAttribute('aria-hidden', String(isOpen));
+        const isOpen = userProfile.classList.contains("open");
+        userProfile.classList.toggle("open", !isOpen);
+        userBtn.setAttribute("aria-expanded", String(!isOpen));
+        if (userMenu) userMenu.setAttribute("aria-hidden", String(isOpen));
       });
-      document.addEventListener('click', (e) => {
+      document.addEventListener("click", (e) => {
         if (!userProfile.contains(e.target)) {
-          userProfile.classList.remove('open');
-          userBtn.setAttribute('aria-expanded', 'false');
-          if (userMenu) userMenu.setAttribute('aria-hidden', 'true');
+          userProfile.classList.remove("open");
+          userBtn.setAttribute("aria-expanded", "false");
+          if (userMenu) userMenu.setAttribute("aria-hidden", "true");
         }
       });
     }
     if (logoutLink) {
-      logoutLink.addEventListener('click', (e) => {
+      logoutLink.addEventListener("click", (e) => {
         e.preventDefault();
-        chrome.runtime.sendMessage({ action: 'authLogout' }, () => {
-          window.location.href = chrome.runtime.getURL('app/pages/auth.html#signin');
+        chrome.runtime.sendMessage({ action: "authLogout" }, () => {
+          window.location.href = chrome.runtime.getURL(
+            "app/pages/auth.html#signin"
+          );
         });
       });
     }
-
 
     // Add click event listener to document to close tabs pane when clicking outside
     document.addEventListener("click", (e) => {
@@ -403,7 +437,13 @@ async function loadSpaces() {
 function renderWorkspaces(spaces) {
   workspacesList.innerHTML = "";
 
-  spaces.forEach((space) => {
+  // Sort spaces based on current sort order
+  const sortedSpaces = [...spaces].sort((a, b) => {
+    const comparison = a.name.localeCompare(b.name);
+    return spacesSortAscending ? comparison : -comparison;
+  });
+
+  sortedSpaces.forEach((space) => {
     const workspaceItem = document.createElement("div");
     workspaceItem.className = "sidebar-item";
     workspaceItem.dataset.spaceId = space.id;
@@ -734,7 +774,33 @@ function createCollectionTabCard(tab, collectionId) {
   infoSection.appendChild(title);
   infoSection.appendChild(subtitleElement);
 
-  // Create actions
+  // Create move button (left side)
+  const moveBtn = document.createElement("button");
+  moveBtn.className = "collection-tab-btn move";
+  moveBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="3" x2="12" y2="21"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <polyline points="9 6 12 3 15 6"></polyline>
+      <polyline points="18 9 21 12 18 15"></polyline>
+      <polyline points="9 18 12 21 15 18"></polyline>
+      <polyline points="6 9 3 12 6 15"></polyline>
+    </svg>
+  `;
+  moveBtn.title = "Move to another collection";
+  moveBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    showMoveTabModal(tab, collectionId);
+  });
+
+  // Create left actions container
+  const leftActions = document.createElement("div");
+  leftActions.className = "collection-tab-actions-left";
+  leftActions.appendChild(moveBtn);
+
+  // Create right actions (open and delete)
   const actions = document.createElement("div");
   actions.className = "collection-tab-actions";
 
@@ -772,6 +838,7 @@ function createCollectionTabCard(tab, collectionId) {
   actions.appendChild(deleteBtn);
 
   // Assemble the card
+  card.appendChild(leftActions);
   card.appendChild(iconSection);
   card.appendChild(infoSection);
   card.appendChild(actions);
@@ -991,6 +1058,15 @@ function setupEventListeners() {
     });
   }
 
+  // Sort spaces button
+  if (sortSpacesBtn) {
+    sortSpacesBtn.addEventListener("click", async () => {
+      spacesSortAscending = !spacesSortAscending;
+      // Reload and re-render spaces with new sort order
+      await loadSpaces();
+    });
+  }
+
   // Tabs pane toggle button
   tabsToggleBtn.addEventListener("click", () => {
     toggleTabsPane();
@@ -1045,6 +1121,32 @@ function setupEventListeners() {
 
   confirmDeleteCollectionBtn.addEventListener("click", () => {
     deleteCollection();
+  });
+
+  // Move tab modal buttons
+  cancelMoveTabBtn.addEventListener("click", () => {
+    hideMoveTabModal();
+  });
+
+  confirmMoveTabBtn.addEventListener("click", () => {
+    moveTab();
+  });
+
+  // Update collections when space is selected in move tab modal
+  moveTabSpaceSelect.addEventListener("change", async () => {
+    const spaceId = moveTabSpaceSelect.value;
+    moveTabCollectionSelect.innerHTML =
+      '<option value="">Choose a collection...</option>';
+
+    if (spaceId) {
+      const collections = await dataService.getCollectionsBySpace(spaceId);
+      collections.forEach((collection) => {
+        const option = document.createElement("option");
+        option.value = collection.id;
+        option.textContent = collection.name;
+        moveTabCollectionSelect.appendChild(option);
+      });
+    }
   });
 
   // Bulk operations buttons
@@ -1319,6 +1421,73 @@ function hideWorkspaceModal() {
   workspaceModal.classList.remove("show");
 }
 
+// Show move tab modal
+async function showMoveTabModal(tab, collectionId) {
+  tabToMove = tab;
+  collectionOfTabToMove = collectionId;
+
+  // Clear previous selections
+  moveTabSpaceSelect.value = "";
+  moveTabCollectionSelect.innerHTML =
+    '<option value="">Choose a collection...</option>';
+
+  // Load spaces
+  const spaces = await dataService.getSpaces();
+  moveTabSpaceSelect.innerHTML = '<option value="">Choose a space...</option>';
+  spaces.forEach((space) => {
+    const option = document.createElement("option");
+    option.value = space.id;
+    option.textContent = space.name;
+    moveTabSpaceSelect.appendChild(option);
+  });
+
+  // Show modal
+  moveTabModal.classList.add("show");
+}
+
+// Hide move tab modal
+function hideMoveTabModal() {
+  moveTabModal.classList.remove("show");
+  tabToMove = null;
+  collectionOfTabToMove = null;
+}
+
+// Move tab to another collection
+async function moveTab() {
+  if (!tabToMove || !collectionOfTabToMove) {
+    alert("Error: Tab information missing");
+    return;
+  }
+
+  const targetCollectionId = moveTabCollectionSelect.value;
+
+  if (!targetCollectionId) {
+    alert("Please select a collection");
+    return;
+  }
+
+  try {
+    // Use the dataService method to move the tab (handles sync automatically)
+    await dataService.moveTabBetweenCollections(
+      collectionOfTabToMove,
+      targetCollectionId,
+      tabToMove.id
+    );
+
+    // Reload collections
+    await loadCollections();
+
+    // Hide modal
+    hideMoveTabModal();
+
+    // Show success message
+    showNotification("Tab moved successfully");
+  } catch (error) {
+    console.error("Error moving tab:", error);
+    alert("Error moving tab. Please try again.");
+  }
+}
+
 // Save collection
 async function saveCollection() {
   // Check if we're saving to a new or existing collection
@@ -1532,22 +1701,22 @@ function setActiveWorkspace(workspaceId) {
 // Sync tabs
 function syncTabs() {
   if (!syncBtn) return;
-  
+
   // Prevent multiple sync operations
   if (syncBtn.classList.contains("syncing")) {
     console.debug("Sync already in progress, ignoring click");
     return;
   }
-  
+
   console.debug("Starting sync animation");
   // Add syncing state - this will trigger the CSS animation and disable the button
   syncBtn.classList.add("syncing");
   syncBtn.disabled = true;
-  
+
   chrome.runtime.sendMessage({ action: "syncTabs" }, (response) => {
     // Refresh visible tabs after background sync completes
     loadOpenTabs();
-    
+
     // Remove syncing state after a minimum duration to ensure user sees the animation
     setTimeout(() => {
       if (syncBtn) {
@@ -1673,28 +1842,22 @@ async function importData(jsonData) {
   try {
     const data = JSON.parse(jsonData);
 
-    // Determine the format of the imported data
-    if (data.groups && Array.isArray(data.groups)) {
-      // This is the custom format with groups, lists, and cards
-      const stats = await dataService._importCustomFormat(data);
+    // Use the importData method which handles both formats and merges data
+    const result = await dataService.importData(data);
 
-      // Reload everything
-      await loadSpaces();
-      await loadCollections();
+    // Reload everything
+    await loadSpaces();
+    await loadCollections();
 
+    // Show appropriate success message
+    if (result.message) {
+      showNotification(result.message);
+    } else if (result.spaces !== undefined) {
       showNotification(
-        `Import successful! Added ${stats.spaces} spaces, ${stats.collections} collections, and ${stats.tabs} tabs.`
+        `Import successful! Added ${result.spaces} spaces, ${result.collections} collections, and ${result.tabs} tabs.`
       );
-    } else if (data.spaces && data.collections) {
-      await dataService.importData(data);
-
-      // Reload everything
-      await loadSpaces();
-      await loadCollections();
-
-      showNotification("Data imported successfully!");
     } else {
-      throw new Error("Unrecognized data format");
+      showNotification("Data imported successfully!");
     }
   } catch (error) {
     console.error("Error importing data:", error);

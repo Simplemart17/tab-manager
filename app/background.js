@@ -1,8 +1,15 @@
-// Background script for Tab Manager
-import { syncAll, pullAll, startRealtime, stopRealtime } from './services/sync-service.js';
+/**
+ * Background script for Simple Tab Plus
+ *
+ * AUTHENTICATION REQUIREMENT:
+ * This app is strictly for authenticated users. All users must log in before using the app.
+ * Unauthenticated users are automatically redirected to the auth page.
+ * All data is synced to Supabase and requires a valid user session.
+ */
+import { syncAll, pullAll, bidirectionalSync, startRealtime, stopRealtime } from './services/sync-service.js';
 import { signUp, signIn, signOut, getSession, validateSession } from './services/auth-service.js';
 import { migrateLocalToCloud } from './services/migration-service.js';
-const SYNC_INTERVAL = 30000; // 30 seconds
+const SYNC_INTERVAL = 86400000; // 24 hours in milliseconds (daily sync)
 let realtimeDispose = null;
 
 // Check if extension context is valid
@@ -60,9 +67,9 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['page', 'link']
   });
 
-  // Setup alarm for syncing
+  // Setup alarm for daily syncing (24 hours)
   chrome.alarms.create('syncTabs', {
-    periodInMinutes: SYNC_INTERVAL / 60000
+    periodInMinutes: 1440 // 24 hours
   });
 });
 
@@ -169,10 +176,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Sync tabs with cloud when alarm triggers
+// Sync tabs with cloud when alarm triggers (daily bidirectional sync)
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'syncTabs' && userPreferences.syncEnabled) {
-    syncTabs();
+    // Perform bidirectional sync (push and pull)
+    bidirectionalSync().catch(e => {
+      console.warn('Scheduled bidirectional sync failed:', e?.message || e);
+    });
   }
 });
 
@@ -244,7 +254,8 @@ function closeTabsInCollection(tabIds) {
 
 async function syncTabs() {
   try {
-    await syncAll();
+    // Perform bidirectional sync: push local changes and pull remote changes
+    await bidirectionalSync();
   } catch (e) {
     console.warn('Sync skipped or failed:', e?.message || e);
   }
@@ -274,10 +285,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         const { data, error } = await signIn({ email: request.email, password: request.password });
         if (error) throw new Error(error.message);
         if (realtimeDispose) { try { realtimeDispose(); } catch (_) {} }
-        // Only start realtime and pull data if sync is enabled
+
+        // ALWAYS pull user's data from cloud on login (regardless of sync setting)
+        // This ensures existing users get their data on new devices
+        await pullAll();
+
+        // Start realtime sync only if sync is enabled
         if (userPreferences.syncEnabled) {
           realtimeDispose = startRealtime();
-          await pullAll();
         }
         sendResponse({ success: true, data });
       } else if (request.action === 'authLogout') {
@@ -308,10 +323,13 @@ chrome.runtime.onStartup.addListener(async () => {
     const { data } = await getSession();
     if (data?.session?.user) {
       if (realtimeDispose) { try { realtimeDispose(); } catch (_) {} }
-      // Only start realtime if sync is enabled
+
+      // ALWAYS pull user's data on startup to ensure sync across devices
+      await pullAll();
+
+      // Start realtime sync only if sync is enabled
       if (userPreferences.syncEnabled) {
         realtimeDispose = startRealtime();
-        await pullAll();
       }
     }
   } catch (_) {}
