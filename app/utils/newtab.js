@@ -47,6 +47,7 @@ const tabsToggleIcon = document.querySelector(".tabs-toggle-icon");
 // Sidebar elements
 const sidebar = document.querySelector(".sidebar");
 const sidebarToggle = document.getElementById("sidebar-toggle");
+const sortSpacesBtn = document.getElementById("sort-spaces-btn");
 
 // Modals
 const saveCollectionModal = document.getElementById("save-collection-modal");
@@ -148,6 +149,7 @@ let currentWorkspaceForAction = null;
 let currentCollectionForAction = null;
 let bulkSelectedTabs = new Set();
 let isBulkSelectMode = false;
+let spacesSortAscending = true; // Track sort order for spaces
 
 /**
  * Authentication helper function with retry logic
@@ -408,7 +410,13 @@ async function loadSpaces() {
 function renderWorkspaces(spaces) {
   workspacesList.innerHTML = "";
 
-  spaces.forEach((space) => {
+  // Sort spaces based on current sort order
+  const sortedSpaces = [...spaces].sort((a, b) => {
+    const comparison = a.name.localeCompare(b.name);
+    return spacesSortAscending ? comparison : -comparison;
+  });
+
+  sortedSpaces.forEach((space) => {
     const workspaceItem = document.createElement("div");
     workspaceItem.className = "sidebar-item";
     workspaceItem.dataset.spaceId = space.id;
@@ -993,6 +1001,15 @@ function setupEventListeners() {
   if (sidebarToggle && sidebar) {
     sidebarToggle.addEventListener("click", () => {
       sidebar.classList.toggle("collapsed");
+    });
+  }
+
+  // Sort spaces button
+  if (sortSpacesBtn) {
+    sortSpacesBtn.addEventListener("click", async () => {
+      spacesSortAscending = !spacesSortAscending;
+      // Reload and re-render spaces with new sort order
+      await loadSpaces();
     });
   }
 

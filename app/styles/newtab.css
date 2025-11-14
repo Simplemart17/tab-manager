@@ -247,6 +247,7 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
 .header-btn:hover {
@@ -442,10 +443,55 @@ body {
   margin-bottom: 20px;
 }
 
+.sidebar-header-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .sidebar-section h3 {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
+  margin: 0;
+}
+
+.sidebar-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.sidebar-action-btn:hover {
+  background-color: var(--surface-color);
+  color: var(--primary-color);
+}
+
+/* Tooltip styling */
+button[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+  border: 1px solid var(--border-color);
+  pointer-events: none;
 }
 
 .sidebar-new-btn {
