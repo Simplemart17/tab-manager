@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SimpleTab Plus",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Advanced tab management with cloud sync",
   "icons": {
     "16": "app/assets/icons/icon16.png",
@@ -20,8 +20,6 @@
   "permissions": [
     "tabs",
     "storage",
-    "bookmarks",
-    "identity",
     "contextMenus",
     "alarms"
   ],
@@ -32,9 +30,6 @@
   "chrome_url_overrides": {
     "newtab": "app/pages/newtab.html"
   },
-  "optional_permissions": [
-    "history"
-  ],
   "commands": {
     "save-current-tab": {
       "suggested_key": {
@@ -51,9 +46,6 @@
       "description": "Open Tab Manager"
     }
   },
-  "host_permissions": [
-    "<all_urls>"
-  ],
   "content_security_policy": {
     "extension_pages": "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self'; object-src 'self'; connect-src 'self' https://anoylxzjeatvusegpzmy.supabase.co wss://anoylxzjeatvusegpzmy.supabase.co; img-src 'self' data: https://*; font-src 'self' data:;"
   },
