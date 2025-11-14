@@ -149,7 +149,12 @@ let currentCollectionForAction = null;
 let bulkSelectedTabs = new Set();
 let isBulkSelectMode = false;
 
-// Authentication helper function with retry logic
+/**
+ * Authentication helper function with retry logic
+ *
+ * NOTE: This app requires authentication. All users must be logged in.
+ * If authentication fails, the user is redirected to the login page.
+ */
 async function checkAuthenticationWithRetry(maxRetries = 3, delayMs = 1000) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -1673,28 +1678,22 @@ async function importData(jsonData) {
   try {
     const data = JSON.parse(jsonData);
 
-    // Determine the format of the imported data
-    if (data.groups && Array.isArray(data.groups)) {
-      // This is the custom format with groups, lists, and cards
-      const stats = await dataService._importCustomFormat(data);
+    // Use the importData method which handles both formats and merges data
+    const result = await dataService.importData(data);
 
-      // Reload everything
-      await loadSpaces();
-      await loadCollections();
+    // Reload everything
+    await loadSpaces();
+    await loadCollections();
 
+    // Show appropriate success message
+    if (result.message) {
+      showNotification(result.message);
+    } else if (result.spaces !== undefined) {
       showNotification(
-        `Import successful! Added ${stats.spaces} spaces, ${stats.collections} collections, and ${stats.tabs} tabs.`
+        `Import successful! Added ${result.spaces} spaces, ${result.collections} collections, and ${result.tabs} tabs.`
       );
-    } else if (data.spaces && data.collections) {
-      await dataService.importData(data);
-
-      // Reload everything
-      await loadSpaces();
-      await loadCollections();
-
-      showNotification("Data imported successfully!");
     } else {
-      throw new Error("Unrecognized data format");
+      showNotification("Data imported successfully!");
     }
   } catch (error) {
     console.error("Error importing data:", error);
