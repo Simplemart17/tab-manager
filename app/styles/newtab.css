@@ -76,26 +76,26 @@
   /* Light theme variables */
   --text-color: #333;
   --text-secondary: #666;
-  --background-color: #f8f7fc; /* Very light purple tint */
+  --background-color: rgba(145, 76, 230, 0.03); /* Very light purple tint */
   --surface-color: #fff;
-  --border-color: #e6e1f9; /* Light purple border */
+  --border-color: rgba(145, 76, 230, 0.15); /* Light purple border */
   --shadow-sm: 0 1px 3px rgba(145, 76, 230, 0.08);
   --shadow-md: 0 4px 6px rgba(145, 76, 230, 0.08);
   --shadow-lg: 0 10px 15px rgba(145, 76, 230, 0.08);
 
   /* Card colors - light theme */
   --card-bg: #fff;
-  --card-header-bg: #f5f2ff; /* Very light purple background */
-  --card-icon-bg: #f0edff; /* Light purple icon background */
-  --card-border: #e6e1f9;
+  --card-header-bg: rgba(145, 76, 230, 0.08); /* Very light purple background */
+  --card-icon-bg: rgba(145, 76, 230, 0.05); /* Light purple icon background */
+  --card-border: rgba(145, 76, 230, 0.15);
   --card-text: #333;
   --card-text-secondary: #666;
 
   /* Collection colors - light theme */
   --collection-bg: #fff;
-  --collection-header-bg: #f5f2ff;
+  --collection-header-bg: rgba(145, 76, 230, 0.08);
   --collection-content-bg: #fff;
-  --collection-border: #e6e1f9;
+  --collection-border: rgba(145, 76, 230, 0.15);
 
   /* Modal colors - light theme */
   --modal-bg: #fff;
@@ -117,24 +117,24 @@
   --text-secondary: #a0a0a0;
   --background-color: #1a1a2e; /* Slightly more blue-toned dark background */
   --surface-color: #232342; /* Slightly more purple-toned surface */
-  --border-color: #3a3a60; /* More purple-toned border */
+  --border-color: rgba(145, 76, 230, 0.25); /* More purple-toned border */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
 
   /* Card colors - dark theme */
   --card-bg: #2d2d4a; /* Slightly more purple-toned card */
-  --card-header-bg: #232342;
-  --card-icon-bg: #3a3a60;
-  --card-border: #3a3a60;
+  --card-header-bg: rgba(145, 76, 230, 0.15);
+  --card-icon-bg: rgba(145, 76, 230, 0.1);
+  --card-border: rgba(145, 76, 230, 0.25);
   --card-text: #e0e0e0;
   --card-text-secondary: #9e9ea7;
 
   /* Collection colors - dark theme */
-  --collection-bg: #232342;
-  --collection-header-bg: #232342;
-  --collection-content-bg: #1a1a2e;
-  --collection-border: #3a3a60;
+  --collection-bg: #1a1a2e;
+  --collection-header-bg: rgba(145, 76, 230, 0.15);
+  --collection-content-bg: #0f0f1e;
+  --collection-border: rgba(145, 76, 230, 0.25);
 
   /* Modal colors - dark theme */
   --modal-bg: #232342;
@@ -1953,6 +1953,23 @@ button[title]:hover::after {
   --shadow-sm: 0 1px 3px rgba(59, 130, 246, 0.08);
   --shadow-md: 0 4px 6px rgba(59, 130, 246, 0.08);
   --shadow-lg: 0 10px 15px rgba(59, 130, 246, 0.08);
+  --card-header-bg: rgba(59, 130, 246, 0.08);
+  --card-icon-bg: rgba(59, 130, 246, 0.05);
+  --collection-header-bg: rgba(59, 130, 246, 0.08);
+  --collection-bg: rgba(59, 130, 246, 0.02);
+  --collection-border: rgba(59, 130, 246, 0.15);
+  --background-color: rgba(59, 130, 246, 0.03);
+  --border-color: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="dark"][data-color-theme="blue"] {
+  --background-color: #1a1a2e;
+  --collection-bg: #1a1a2e;
+
+  --card-header-bg: rgba(59, 130, 246, 0.15);
+  --card-icon-bg: rgba(59, 130, 246, 0.1);
+  --collection-header-bg: rgba(59, 130, 246, 0.15);
+  --border-color: rgba(59, 130, 246, 0.25);
 }
 
 /* Emerald & Teal Theme */
@@ -1968,6 +1985,23 @@ button[title]:hover::after {
   --shadow-sm: 0 1px 3px rgba(16, 185, 129, 0.08);
   --shadow-md: 0 4px 6px rgba(16, 185, 129, 0.08);
   --shadow-lg: 0 10px 15px rgba(16, 185, 129, 0.08);
+  --card-header-bg: rgba(16, 185, 129, 0.08);
+  --card-icon-bg: rgba(16, 185, 129, 0.05);
+  --collection-header-bg: rgba(16, 185, 129, 0.08);
+  --collection-bg: rgba(16, 185, 129, 0.02);
+  --collection-border: rgba(16, 185, 129, 0.15);
+  --background-color: rgba(16, 185, 129, 0.03);
+  --border-color: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"][data-color-theme="emerald"] {
+  --background-color: #1a1a2e;
+  --collection-bg: #1a1a2e;
+
+  --card-header-bg: rgba(16, 185, 129, 0.15);
+  --card-icon-bg: rgba(16, 185, 129, 0.1);
+  --collection-header-bg: rgba(16, 185, 129, 0.15);
+  --border-color: rgba(16, 185, 129, 0.25);
 }
 
 /* Rose & Pink Theme */
@@ -1983,6 +2017,23 @@ button[title]:hover::after {
   --shadow-sm: 0 1px 3px rgba(225, 29, 72, 0.08);
   --shadow-md: 0 4px 6px rgba(225, 29, 72, 0.08);
   --shadow-lg: 0 10px 15px rgba(225, 29, 72, 0.08);
+  --card-header-bg: rgba(225, 29, 72, 0.08);
+  --card-icon-bg: rgba(225, 29, 72, 0.05);
+  --collection-header-bg: rgba(225, 29, 72, 0.08);
+  --collection-bg: rgba(225, 29, 72, 0.02);
+  --collection-border: rgba(225, 29, 72, 0.15);
+  --background-color: rgba(225, 29, 72, 0.03);
+  --border-color: rgba(225, 29, 72, 0.15);
+}
+
+[data-theme="dark"][data-color-theme="rose"] {
+  --background-color: #1a1a2e;
+  --collection-bg: #1a1a2e;
+
+  --card-header-bg: rgba(225, 29, 72, 0.15);
+  --card-icon-bg: rgba(225, 29, 72, 0.1);
+  --collection-header-bg: rgba(225, 29, 72, 0.15);
+  --border-color: rgba(225, 29, 72, 0.25);
 }
 
 /* Amber & Orange Theme */
@@ -1998,6 +2049,23 @@ button[title]:hover::after {
   --shadow-sm: 0 1px 3px rgba(217, 119, 6, 0.08);
   --shadow-md: 0 4px 6px rgba(217, 119, 6, 0.08);
   --shadow-lg: 0 10px 15px rgba(217, 119, 6, 0.08);
+  --card-header-bg: rgba(217, 119, 6, 0.08);
+  --card-icon-bg: rgba(217, 119, 6, 0.05);
+  --collection-header-bg: rgba(217, 119, 6, 0.08);
+  --collection-bg: rgba(217, 119, 6, 0.02);
+  --collection-border: rgba(217, 119, 6, 0.15);
+  --background-color: rgba(217, 119, 6, 0.03);
+  --border-color: rgba(217, 119, 6, 0.15);
+}
+
+[data-theme="dark"][data-color-theme="amber"] {
+  --background-color: #1a1a2e;
+  --collection-bg: #1a1a2e;
+
+  --card-header-bg: rgba(217, 119, 6, 0.15);
+  --card-icon-bg: rgba(217, 119, 6, 0.1);
+  --collection-header-bg: rgba(217, 119, 6, 0.15);
+  --border-color: rgba(217, 119, 6, 0.25);
 }
 
 /* Indigo & Violet Theme */
@@ -2013,6 +2081,23 @@ button[title]:hover::after {
   --shadow-sm: 0 1px 3px rgba(79, 70, 229, 0.08);
   --shadow-md: 0 4px 6px rgba(79, 70, 229, 0.08);
   --shadow-lg: 0 10px 15px rgba(79, 70, 229, 0.08);
+  --card-header-bg: rgba(79, 70, 229, 0.08);
+  --card-icon-bg: rgba(79, 70, 229, 0.05);
+  --collection-header-bg: rgba(79, 70, 229, 0.08);
+  --collection-bg: rgba(79, 70, 229, 0.02);
+  --collection-border: rgba(79, 70, 229, 0.15);
+  --background-color: rgba(79, 70, 229, 0.03);
+  --border-color: rgba(79, 70, 229, 0.15);
+}
+
+[data-theme="dark"][data-color-theme="indigo"] {
+  --background-color: #1a1a2e;
+  --collection-bg: #1a1a2e;
+
+  --card-header-bg: rgba(79, 70, 229, 0.15);
+  --card-icon-bg: rgba(79, 70, 229, 0.1);
+  --collection-header-bg: rgba(79, 70, 229, 0.15);
+  --border-color: rgba(79, 70, 229, 0.25);
 }
 
 /* Slate & Gray Theme */
@@ -2028,6 +2113,23 @@ button[title]:hover::after {
   --shadow-sm: 0 1px 3px rgba(71, 85, 105, 0.08);
   --shadow-md: 0 4px 6px rgba(71, 85, 105, 0.08);
   --shadow-lg: 0 10px 15px rgba(71, 85, 105, 0.08);
+  --card-header-bg: rgba(71, 85, 105, 0.08);
+  --card-icon-bg: rgba(71, 85, 105, 0.05);
+  --collection-header-bg: rgba(71, 85, 105, 0.08);
+  --collection-bg: rgba(71, 85, 105, 0.02);
+  --collection-border: rgba(71, 85, 105, 0.15);
+  --background-color: rgba(71, 85, 105, 0.03);
+  --border-color: rgba(71, 85, 105, 0.15);
+}
+
+[data-theme="dark"][data-color-theme="slate"] {
+  --background-color: #1a1a2e;
+  --collection-bg: #1a1a2e;
+
+  --card-header-bg: rgba(71, 85, 105, 0.15);
+  --card-icon-bg: rgba(71, 85, 105, 0.1);
+  --collection-header-bg: rgba(71, 85, 105, 0.15);
+  --border-color: rgba(71, 85, 105, 0.25);
 }
 
 /* Cyan & Teal Theme */
@@ -2043,6 +2145,23 @@ button[title]:hover::after {
   --shadow-sm: 0 1px 3px rgba(8, 145, 178, 0.08);
   --shadow-md: 0 4px 6px rgba(8, 145, 178, 0.08);
   --shadow-lg: 0 10px 15px rgba(8, 145, 178, 0.08);
+  --card-header-bg: rgba(8, 145, 178, 0.08);
+  --card-icon-bg: rgba(8, 145, 178, 0.05);
+  --collection-header-bg: rgba(8, 145, 178, 0.08);
+  --collection-bg: rgba(8, 145, 178, 0.02);
+  --collection-border: rgba(8, 145, 178, 0.15);
+  --background-color: rgba(8, 145, 178, 0.03);
+  --border-color: rgba(8, 145, 178, 0.15);
+}
+
+[data-theme="dark"][data-color-theme="cyan"] {
+  --background-color: #1a1a2e;
+  --collection-bg: #1a1a2e;
+
+  --card-header-bg: rgba(8, 145, 178, 0.15);
+  --card-icon-bg: rgba(8, 145, 178, 0.1);
+  --collection-header-bg: rgba(8, 145, 178, 0.15);
+  --border-color: rgba(8, 145, 178, 0.25);
 }
 
 /* Tab Selection Checkbox */
