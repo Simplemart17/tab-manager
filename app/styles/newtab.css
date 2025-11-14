@@ -428,9 +428,11 @@ body {
 }
 .sidebar.collapsed .sidebar-section h3,
 .sidebar.collapsed .sidebar-new-btn,
+.sidebar.collapsed .sidebar-action-btn,
 .sidebar.collapsed .sidebar-item.active,
 .sidebar.collapsed .sidebar-item span {
   display: none;
+  pointer-events: none;
 }
 .sidebar.collapsed .workspace-actions {
   display: none !important;
@@ -525,15 +527,15 @@ button[title]:hover::after {
   padding: 8px 12px;
   border-radius: var(--border-radius);
   cursor: pointer;
-  will-change: transform, background-color, color;
-  transition: background-color 0.25s ease, color 0.25s ease,
-    transform 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    transform 0.2s ease;
   margin-bottom: 4px;
 }
 
 .sidebar-item:hover {
   background-color: rgba(var(--primary-color-rgb), 0.12);
   transform: translateX(2px);
+  will-change: transform, background-color, color;
 }
 
 .sidebar-item.active {
@@ -756,6 +758,7 @@ button[title]:hover::after {
 
 .collection-tab-card:hover .collection-tab-actions-left {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .collection-tab-actions {
@@ -1780,15 +1783,17 @@ button[title]:hover::after {
 }
 
 .workspace-actions {
-  display: none;
+  display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.2s;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  will-change: opacity;
 }
 
 .sidebar-item:hover .workspace-actions {
-  display: flex;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .workspace-action-btn {
@@ -1818,16 +1823,18 @@ button[title]:hover::after {
 }
 
 .collection-actions {
-  display: none;
+  display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.2s;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
   margin-left: 8px;
+  will-change: opacity;
 }
 
 .collection-header:hover .collection-actions {
-  display: flex;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .collection-action-btn {
