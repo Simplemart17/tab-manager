@@ -6,9 +6,10 @@
  * Unauthenticated users are automatically redirected to the auth page.
  * All data is synced to Supabase and requires a valid user session.
  */
-import { syncAll, pullAll, bidirectionalSync, startRealtime, stopRealtime } from './services/sync-service.js';
+import { bidirectionalSync, pullAll, startRealtime, stopRealtime } from './services/sync-service.js';
 import { signUp, signIn, signOut, getSession, validateSession } from './services/auth-service.js';
 import { migrateLocalToCloud } from './services/migration-service.js';
+import dataService from './services/data.js';
 
 // Configurable sync interval (default: 5 minutes = 300000 milliseconds)
 let SYNC_INTERVAL = 300000; // 5 minutes in milliseconds
@@ -51,7 +52,6 @@ const safeApiCall = async (apiCall) => {
 };
 
 // Tab management state
-let collections = {};
 let syncedTabs = {};
 let userPreferences = {
   theme: 'dark',
@@ -61,12 +61,8 @@ let userPreferences = {
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(() => {
-  // Load stored data if available
-  chrome.storage.local.get(['collections', 'userPreferences'], (result) => {
-    if (result.collections) {
-      collections = result.collections;
-    }
-
+  // Load stored user preferences if available
+  chrome.storage.local.get(['userPreferences'], (result) => {
     if (result.userPreferences) {
       userPreferences = result.userPreferences;
     } else {
@@ -139,12 +135,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
     switch (request.action) {
       case 'getCollections':
-        sendResponse({ collections });
-        break;
+        safeApiCall(async () => {
+          const collections = await dataService.getCollections();
+          sendResponse({ collections });
+        }).catch(handleError);
+        return true;
 
       case 'saveCollection':
         safeApiCall(async () => {
-          await saveCollection(request.collection);
+          await dataService.createCollection(request.collection.name, request.collection.spaceId, request.collection.tabs || []);
           sendResponse({ success: true });
         }).catch(handleError);
         return true;
@@ -235,42 +234,40 @@ function saveTabToHistory(tab) {
   });
 }
 
-function handleTabRemoval(tabId) {
-  // Check if tab is in any collection and update UI if needed
-  for (const collectionId in collections) {
-    const tabs = collections[collectionId].tabs || [];
-    const tabIndex = tabs.findIndex(tab => (tab.chromeTabId === tabId) || (tab.id === tabId));
-    if (tabIndex !== -1) {
-      // Tab was in a collection, update UI
-      chrome.runtime.sendMessage({
-        action: 'tabRemoved',
-        collectionId,
-        tabId
-      });
+async function handleTabRemoval(tabId) {
+  try {
+    const collections = await dataService.getCollections();
+    for (const collection of collections) {
+      const tabs = collection.tabs || [];
+      const tabIndex = tabs.findIndex(tab => (tab.chromeTabId === tabId) || (tab.id === tabId));
+      if (tabIndex !== -1) {
+        // Tab was in a collection, update UI
+        chrome.runtime.sendMessage({
+          action: 'tabRemoved',
+          collectionId: collection.id,
+          tabId
+        });
+      }
     }
+  } catch (error) {
+    console.error('Failed to handle tab removal', error);
   }
 }
 
-function saveCollection(collection) {
-  collections[collection.id] = collection;
-  chrome.storage.local.set({ collections });
+async function openTabsInCollection(collectionId) {
+  try {
+    const collection = await dataService.getCollection(collectionId);
+    if (!collection || !collection.tabs || collection.tabs.length === 0) return;
 
-  // If sync is enabled, push to cloud
-  if (userPreferences.syncEnabled) {
-    syncTabs();
-  }
-}
-
-function openTabsInCollection(collectionId) {
-  const collection = collections[collectionId];
-  if (!collection) return;
-
-  collection.tabs.forEach(tab => {
-    chrome.tabs.create({
-      url: tab.url,
-      active: false
+    collection.tabs.forEach(tab => {
+      chrome.tabs.create({
+        url: tab.url,
+        active: false
+      });
     });
-  });
+  } catch (error) {
+    console.error('Failed to open tabs in collection', error);
+  }
 }
 
 function closeTabsInCollection(tabIds) {

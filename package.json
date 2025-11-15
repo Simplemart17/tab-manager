@@ -5,7 +5,9 @@
   "main": "app/background.js",
   "scripts": {
     "build:bg": "esbuild app/background.js --bundle --format=esm --platform=browser --outfile=dist/background.js",
-    "build": "npm run build:bg",
+    "build:newtab": "esbuild app/utils/newtab.js --bundle --format=esm --platform=browser --outfile=dist/newtab.js",
+    "build:popup": "esbuild app/utils/popup.js --bundle --format=esm --platform=browser --outfile=dist/popup.js",
+    "build": "npm run build:bg && npm run build:newtab && npm run build:popup",
     "package": "bash ./scripts/package-extension.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

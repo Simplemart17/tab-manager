@@ -1,5 +1,6 @@
 // app/services/data.js
 import dbService from './db.js';
+import { getSupabase, getCurrentUser } from './supabaseClient.js';
 
 function generateUuid() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -14,6 +15,78 @@ function generateUuid() {
     hex() + hex() + hex()
   );
 }
+
+async function deleteWorkspaceFromSupabase(space) {
+  try {
+    const supabase = getSupabase();
+    if (!supabase || !space || !space.name) return;
+
+    const user = await getCurrentUser();
+    if (!user) return;
+
+    // Find remote workspaces for this user and space name
+    const { data: wsRows, error: wsErr } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('name', space.name);
+
+    if (wsErr) {
+      console.warn('Failed to load remote workspace for deletion:', wsErr.message || wsErr);
+      return;
+    }
+
+    if (!wsRows || wsRows.length === 0) return;
+
+    const workspaceIds = wsRows.map((w) => w.id);
+
+    // Load collections attached to these workspaces
+    const { data: collRows, error: collErr } = await supabase
+      .from('collections')
+      .select('id')
+      .eq('user_id', user.id)
+      .in('workspace_id', workspaceIds);
+
+    if (collErr) {
+      console.warn('Failed to load remote collections for workspace deletion:', collErr.message || collErr);
+    } else if (collRows && collRows.length) {
+      const collectionIds = collRows.map((c) => c.id);
+
+      // Delete tabs in these collections
+      const { error: tabsErr } = await supabase
+        .from('tabs')
+        .delete()
+        .in('collection_id', collectionIds)
+        .eq('user_id', user.id);
+      if (tabsErr) {
+        console.warn('Failed to delete remote tabs for workspace:', tabsErr.message || tabsErr);
+      }
+
+      // Delete collections themselves
+      const { error: collDelErr } = await supabase
+        .from('collections')
+        .delete()
+        .in('id', collectionIds)
+        .eq('user_id', user.id);
+      if (collDelErr) {
+        console.warn('Failed to delete remote collections for workspace:', collDelErr.message || collDelErr);
+      }
+    }
+
+    // Finally delete workspace records
+    const { error: wsDelErr } = await supabase
+      .from('workspaces')
+      .delete()
+      .in('id', workspaceIds)
+      .eq('user_id', user.id);
+    if (wsDelErr) {
+      console.warn('Failed to delete remote workspace:', wsDelErr.message || wsDelErr);
+    }
+  } catch (error) {
+    console.warn('Error deleting workspace from Supabase:', error?.message || error);
+  }
+}
+
 
 
 class DataService {
@@ -112,6 +185,10 @@ class DataService {
 
   async deleteSpace(id) {
     await this.init();
+
+    // Capture the space before deleting for remote cleanup
+    const space = await dbService.getSpace(id);
+
     // First, get all collections in this space
     const collections = await dbService.getCollectionsBySpace(id);
 
@@ -120,8 +197,13 @@ class DataService {
       await dbService.deleteCollection(collection.id);
     }
 
-    // Delete the space
+    // Delete the space locally
     const result = await dbService.deleteSpace(id);
+
+    // Best-effort delete of corresponding workspace, collections and tabs from Supabase
+    if (space) {
+      await deleteWorkspaceFromSupabase(space);
+    }
 
     // Immediate dual-sync to Supabase
     this.immediateDualSync();
@@ -132,7 +214,10 @@ class DataService {
   async deleteSpaceWithMigration(spaceId, targetSpaceId) {
     await this.init();
 
-    // Validate that target space exists
+    // Capture the space before deleting so we can clean it up in Supabase
+    const space = await dbService.getSpace(spaceId);
+
+    // Validate that target space exists (when provided)
     if (targetSpaceId) {
       const targetSpace = await dbService.getSpace(targetSpaceId);
       if (!targetSpace) {
@@ -159,8 +244,13 @@ class DataService {
       }
     }
 
-    // Delete the space
+    // Delete the space locally
     const result = await dbService.deleteSpace(spaceId);
+
+    // Best-effort delete of corresponding workspace (and its collections/tabs) from Supabase
+    if (space) {
+      await deleteWorkspaceFromSupabase(space);
+    }
 
     // Immediate dual-sync to Supabase
     this.immediateDualSync();
@@ -247,7 +337,40 @@ class DataService {
 
   async deleteCollection(id) {
     await this.init();
+
+    // Delete locally first
     const result = await dbService.deleteCollection(id);
+
+    // Best-effort delete in Supabase so pullAll does not resurrect it
+    try {
+      const supabase = getSupabase();
+      if (supabase) {
+        const user = await getCurrentUser();
+        if (user) {
+          // Delete tabs for this collection
+          const { error: tabsErr } = await supabase
+            .from('tabs')
+            .delete()
+            .eq('collection_id', id)
+            .eq('user_id', user.id);
+          if (tabsErr) {
+            console.warn('Failed to delete remote tabs for collection:', tabsErr.message || tabsErr);
+          }
+
+          // Delete the collection row itself
+          const { error: collErr } = await supabase
+            .from('collections')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', user.id);
+          if (collErr) {
+            console.warn('Failed to delete remote collection:', collErr.message || collErr);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error deleting collection from Supabase:', error?.message || error);
+    }
 
     // Immediate dual-sync to Supabase
     this.immediateDualSync();
