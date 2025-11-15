@@ -1,5 +1,20 @@
 // New Tab script for Simple Tab Manager
 import dataService from "../services/data.js";
+
+function generateUuid() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(1);
+  return (
+    hex() + hex() + "-" +
+    hex() + "-" +
+    hex() + "-" +
+    hex() + "-" +
+    hex() + hex() + hex()
+  );
+}
+
 import dragDropService from "../services/dragdrop.js";
 import searchService from "../services/search.js";
 import searchFilters from "../components/search-filters.js";
@@ -330,6 +345,25 @@ function startSessionMonitoring() {
   }, 5 * 60 * 1000); // 5 minutes
 }
 
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'refreshDataFromServer') {
+    // Refresh data from server (Supabase is now source of truth)
+    console.log('Refreshing data from server...');
+    loadSpaces();
+    loadCollections();
+    loadOpenTabs();
+
+    // Show notification if requested
+    if (request.showNotification && request.message) {
+      const notificationType = request.notificationType || 'success';
+      showNotification(request.message, notificationType);
+    }
+
+    sendResponse({ success: true });
+  }
+});
+
 // Initialize
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -543,22 +577,24 @@ function renderWorkspaces(spaces) {
     if (space.id === activeWorkspace) {
       workspaceItem.classList.add("active");
     }
-    
+
     const iconTextContainer = document.createElement("div");
     iconTextContainer.className = "icon-text-container";
-    
+
     // Add icon if available
     if (space.icon && SPACE_ICONS[space.icon]) {
       const iconSpan = document.createElement("span");
       iconSpan.className = "sidebar-item-icon";
       iconSpan.innerHTML = SPACE_ICONS[space.icon];
       iconTextContainer.appendChild(iconSpan);
-      workspaceItem.appendChild(iconTextContainer);
     }
 
     const nameSpan = document.createElement("span");
     nameSpan.textContent = space.name;
     iconTextContainer.appendChild(nameSpan);
+
+    // Always append the container to the workspace item
+    workspaceItem.appendChild(iconTextContainer);
 
     // Add action buttons
     const actionsDiv = document.createElement("div");
@@ -1679,9 +1715,7 @@ async function saveCollection() {
         }
 
         return {
-          id: `tab-${Date.now()}-${Math.random()
-            .toString(36)
-            .substring(2, 11)}`,
+          id: generateUuid(),
           url: tab.url,
           title: tab.title,
           favicon: favicon,
@@ -1734,9 +1768,7 @@ async function saveCollection() {
         }
 
         return {
-          id: `tab-${Date.now()}-${Math.random()
-            .toString(36)
-            .substring(2, 11)}`,
+          id: generateUuid(),
           url: tab.url,
           title: tab.title,
           favicon: favicon,

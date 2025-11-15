@@ -1,10 +1,25 @@
 // app/services/data.js
 import dbService from './db.js';
 
+function generateUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(1);
+  return (
+    hex() + hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + hex() + hex()
+  );
+}
+
+
 class DataService {
   constructor() {
     this.initialized = false;
-    this.autoSyncEnabled = false; // Disable auto-sync by default - user must explicitly enable
+    this.syncInProgress = false;
   }
 
   async init() {
@@ -16,34 +31,27 @@ class DataService {
   }
 
   /**
-   * Auto-sync helper: Triggers background sync to Supabase after local changes
-   * This is non-blocking and handles errors silently
-   *
-   * NOTE: This app requires authentication. All users must be logged in.
-   * If user is not signed in, this should not happen as the app enforces auth.
+   * Immediate dual-sync: Syncs data to both IndexedDB and Supabase immediately
+   * This is called after every data operation (create, update, delete, move)
+   * Non-blocking - errors are logged but don't disrupt user operations
    */
-  async autoSync() {
-    if (!this.autoSyncEnabled) return;
+  async immediateDualSync() {
+    // Prevent multiple concurrent syncs
+    if (this.syncInProgress) return;
 
+    this.syncInProgress = true;
     try {
-      // Dynamically import to avoid circular dependencies
-      const { getCurrentUser } = await import('./supabaseClient.js');
-      const { syncAll } = await import('./sync-service.js');
-
-      const user = await getCurrentUser();
-      if (!user) {
-        // User should always be authenticated in this app
-        console.warn('Auto-sync skipped: User not authenticated');
-        return;
-      }
-
-      // Trigger sync in background (non-blocking)
-      syncAll().catch(err => {
-        console.warn('Auto-sync failed:', err.message);
+      // Trigger sync via background script to avoid circular dependencies
+      // The background script has access to sync-service.js
+      chrome.runtime.sendMessage({ action: 'immediateSyncTabs' }, (response) => {
+        if (response?.error) {
+          console.warn('Immediate sync failed:', response.error);
+        }
       });
     } catch (error) {
-      // Silently handle errors to not disrupt user operations
-      console.warn('Auto-sync error:', error.message);
+      console.warn('Immediate sync error:', error.message);
+    } finally {
+      this.syncInProgress = false;
     }
   }
 
@@ -68,7 +76,7 @@ class DataService {
   async createSpace(name, color, icon = 'briefcase') {
     await this.init();
     const space = {
-      id: `space-${Date.now()}`,
+      id: generateUuid(),
       name,
       color,
       icon,
@@ -77,8 +85,8 @@ class DataService {
     };
     const result = await dbService.addSpace(space);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -96,8 +104,8 @@ class DataService {
 
     const result = await dbService.updateSpace(updatedSpace);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -115,8 +123,8 @@ class DataService {
     // Delete the space
     const result = await dbService.deleteSpace(id);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -154,8 +162,8 @@ class DataService {
     // Delete the space
     const result = await dbService.deleteSpace(spaceId);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -178,8 +186,8 @@ class DataService {
       });
     }
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return collections.length;
   }
@@ -203,7 +211,7 @@ class DataService {
   async createCollection(name, spaceId, tabs = []) {
     await this.init();
     const collection = {
-      id: `collection-${Date.now()}`,
+      id: generateUuid(),
       name,
       spaceId,
       tabs,
@@ -212,8 +220,8 @@ class DataService {
     };
     const result = await dbService.addCollection(collection);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -231,8 +239,8 @@ class DataService {
 
     const result = await dbService.updateCollection(updatedCollection);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -241,8 +249,8 @@ class DataService {
     await this.init();
     const result = await dbService.deleteCollection(id);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -253,7 +261,7 @@ class DataService {
     if (!collection) throw new Error(`Collection with id ${collectionId} not found`);
 
     const tabToAdd = {
-      id: `tab-${Date.now()}`,
+      id: generateUuid(),
       url: tab.url,
       title: tab.title,
       favicon: tab.favIconUrl || tab.favicon || '',
@@ -268,8 +276,8 @@ class DataService {
 
     const result = await dbService.updateCollection(updatedCollection);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -287,8 +295,8 @@ class DataService {
 
     const result = await dbService.updateCollection(updatedCollection);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -325,8 +333,8 @@ class DataService {
     await dbService.updateCollection(updatedSourceCollection);
     const result = await dbService.updateCollection(updatedTargetCollection);
 
-    // Auto-sync to Supabase
-    this.autoSync();
+    // Immediate dual-sync to Supabase
+    this.immediateDualSync();
 
     return result;
   }
@@ -374,8 +382,10 @@ class DataService {
 
     // Create maps for quick lookup
     const existingSpacesByName = {};
+    const existingSpacesById = {};
     for (const space of existingSpaces) {
       existingSpacesByName[space.name.toLowerCase()] = space;
+      existingSpacesById[space.id] = space;
     }
 
     const existingCollectionsById = {};
@@ -390,15 +400,33 @@ class DataService {
       // This is the custom format with groups, lists, and cards
       result = await this._importCustomFormat(data, existingSpacesByName, existingCollectionsById);
     } else if (data.spaces && data.collections) {
+      // Create a map of old space IDs to new space IDs for handling old export formats
+      const spaceIdMap = {};
+
       // Import spaces (skip duplicates by name)
       let spacesAdded = 0;
       for (const space of data.spaces) {
         const spaceName = space.name.toLowerCase();
-        if (!existingSpacesByName[spaceName]) {
-          await dbService.addSpace(space);
-          existingSpacesByName[spaceName] = space;
+        let targetSpace;
+
+        if (existingSpacesByName[spaceName]) {
+          // Space with this name already exists
+          targetSpace = existingSpacesByName[spaceName];
+        } else {
+          // Create new space with default icon if not provided
+          const spaceToAdd = {
+            ...space,
+            icon: space.icon || 'briefcase'
+          };
+          await dbService.addSpace(spaceToAdd);
+          targetSpace = spaceToAdd;
+          existingSpacesByName[spaceName] = spaceToAdd;
+          existingSpacesById[spaceToAdd.id] = spaceToAdd;
           spacesAdded++;
         }
+
+        // Map old space ID to new space ID (for old export formats)
+        spaceIdMap[space.id] = targetSpace.id;
       }
 
       // Import collections (skip duplicates by ID, merge tabs)
@@ -406,6 +434,28 @@ class DataService {
       let tabsAdded = 0;
       for (const collection of data.collections) {
         const existingCollection = existingCollectionsById[collection.id];
+
+        // Handle space ID mapping for old export formats
+        let collectionSpaceId = collection.spaceId;
+        if (spaceIdMap[collectionSpaceId]) {
+          collectionSpaceId = spaceIdMap[collectionSpaceId];
+        }
+
+        // Verify the space exists, if not find a default space
+        if (!existingSpacesById[collectionSpaceId]) {
+          // Try to find a space by name from the imported spaces
+          const importedSpace = data.spaces.find(s => s.id === collection.spaceId);
+          if (importedSpace && existingSpacesByName[importedSpace.name.toLowerCase()]) {
+            collectionSpaceId = existingSpacesByName[importedSpace.name.toLowerCase()].id;
+          } else if (existingSpaces.length > 0) {
+            // Use first existing space as fallback
+            collectionSpaceId = existingSpaces[0].id;
+          } else {
+            // Skip this collection if no space is available
+            console.warn(`Skipping collection ${collection.id}: no valid space found`);
+            continue;
+          }
+        }
 
         if (existingCollection) {
           // Collection exists - merge tabs (avoid duplicates by URL)
@@ -427,9 +477,13 @@ class DataService {
             tabsAdded += newTabs.length;
           }
         } else {
-          // New collection - add it
-          await dbService.addCollection(collection);
-          existingCollectionsById[collection.id] = collection;
+          // New collection - add it with corrected spaceId
+          const collectionToAdd = {
+            ...collection,
+            spaceId: collectionSpaceId
+          };
+          await dbService.addCollection(collectionToAdd);
+          existingCollectionsById[collection.id] = collectionToAdd;
           collectionsAdded++;
           tabsAdded += (collection.tabs || []).length;
         }
@@ -452,8 +506,16 @@ class DataService {
       throw new Error('Unrecognized data format for import');
     }
 
-    // Auto-sync imported data to Supabase
-    this.autoSync();
+    // Trigger sync to Supabase immediately after import via background script
+    try {
+      chrome.runtime.sendMessage({ action: 'syncTabs' }, (response) => {
+        if (response?.error) {
+          console.warn('Failed to sync imported data:', response.error);
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to trigger sync for imported data:', error.message);
+    }
 
     return result;
   }
@@ -489,7 +551,7 @@ class DataService {
         spaceId = existingSpacesByName[spaceName].id;
       } else {
         // Create a new space for this group
-        spaceId = `space-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        spaceId = generateUuid();
         const space = {
           id: spaceId,
           name: group.name,
@@ -514,7 +576,7 @@ class DataService {
         const tabs = list.cards
           .filter(card => card.url)
           .map(card => ({
-            id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            id: generateUuid(),
             url: card.url,
             title: card.title || card.url,
             favicon: card.favicon || '',
@@ -523,7 +585,7 @@ class DataService {
           }));
 
         // Create a unique collection ID
-        const collectionId = `collection-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const collectionId = generateUuid();
 
         // Check if a collection with similar name exists in this space
         const existingCollectionInSpace = Object.values(existingCollectionsById).find(

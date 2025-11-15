@@ -1,6 +1,21 @@
 // Popup script for Simple Tab Manager
 import dataService from '../services/data.js';
 
+function generateUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(1);
+  return (
+    hex() + hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + hex() + hex()
+  );
+}
+
+
 
 // DOM Elements
 const openTabsList = document.getElementById('open-tabs');
@@ -526,11 +541,12 @@ function saveCollection() {
     return;
   }
 
-  const collectionId = `collection-${Date.now()}`;
+  const collectionId = generateUuid();
 
   const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
   const tabs = selectedTabs.map(tab => ({
-    id: tab.id,
+    id: generateUuid(),
+    chromeTabId: tab.id,
     url: tab.url,
     title: tab.title,
     favicon: tab.favIconUrl || defaultIcon
@@ -623,14 +639,14 @@ function syncTabs() {
     chrome.runtime.sendMessage({ action: 'syncTabs' });
     return;
   }
-  
+
   // Prevent multiple sync operations
   if (syncBtn.classList.contains('syncing')) return;
-  
+
   // Add syncing state - this will trigger the CSS animation and disable the button
   syncBtn.classList.add('syncing');
   syncBtn.disabled = true;
-  
+
   chrome.runtime.sendMessage({ action: 'syncTabs' }, (response) => {
     // Remove syncing state after a minimum duration to ensure user sees the animation
     setTimeout(() => {
