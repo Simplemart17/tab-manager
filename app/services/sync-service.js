@@ -67,6 +67,7 @@ async function _syncAllImpl() {
     for (const s of spaces) {
       const name = s.name || 'Workspace';
       const color = s.color || '#914CE6';
+      const icon = s.icon || 'briefcase';
       // Try update existing by name; if not exists, insert
       const { data: wsExisting } = await supabase
         .from('workspaces')
@@ -76,9 +77,9 @@ async function _syncAllImpl() {
         .limit(1)
         .maybeSingle();
       if (wsExisting?.id) {
-        await supabase.from('workspaces').update({ color, updated_at: nowIso() }).eq('id', wsExisting.id);
+        await supabase.from('workspaces').update({ color, icon, updated_at: nowIso() }).eq('id', wsExisting.id);
       } else {
-        await supabase.from('workspaces').insert({ user_id: user.id, name, color, updated_at: nowIso() });
+        await supabase.from('workspaces').insert({ user_id: user.id, name, color, icon, updated_at: nowIso() });
       }
     }
   }
@@ -264,7 +265,7 @@ export async function pullAll() {
   // Pull workspaces and merge with local spaces
   const { data: remoteWs } = await supabase
     .from('workspaces')
-    .select('id,name,color,updated_at')
+    .select('id,name,color,icon,updated_at')
     .eq('user_id', user.id)
     .order('name');
 
@@ -282,20 +283,22 @@ export async function pullAll() {
     for (const ws of remoteWs) {
       const name = ws.name;
       const color = ws.color || '#914CE6';
+      const icon = ws.icon || 'briefcase';
       const localId = slugify(name);
 
       wsIdToLocalSpaceId[ws.id] = localId;
 
       const existingSpace = existingSpacesMap[name];
       if (existingSpace) {
-        // Update existing space if remote is newer or if color changed
+        // Update existing space if remote is newer or if color/icon changed
         const remoteUpdatedAt = ws.updated_at ? new Date(ws.updated_at).getTime() : 0;
         const localUpdatedAt = existingSpace.updatedAt || 0;
 
-        if (remoteUpdatedAt >= localUpdatedAt || existingSpace.color !== color) {
+        if (remoteUpdatedAt >= localUpdatedAt || existingSpace.color !== color || existingSpace.icon !== icon) {
           await dbService.updateSpace({
             ...existingSpace,
             color,
+            icon,
             updatedAt: Date.now()
           });
         }
@@ -305,6 +308,7 @@ export async function pullAll() {
           id: localId,
           name,
           color,
+          icon,
           createdAt: Date.now(),
           updatedAt: Date.now()
         });

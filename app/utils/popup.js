@@ -238,7 +238,7 @@ function createTabElement(tab) {
       <polyline points="7 3 7 8 15 8"></polyline>
     </svg>
   `;
-  saveBtn.title = 'Save tab';
+
   saveBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     showSaveModal([tab]);
@@ -252,7 +252,7 @@ function createTabElement(tab) {
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   `;
-  closeBtn.title = 'Close tab';
+
   closeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     chrome.tabs.remove(tab.id);

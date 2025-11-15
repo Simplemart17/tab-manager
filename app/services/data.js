@@ -65,12 +65,13 @@ class DataService {
     return dbService.getSpace(id);
   }
 
-  async createSpace(name, color) {
+  async createSpace(name, color, icon = 'briefcase') {
     await this.init();
     const space = {
       id: `space-${Date.now()}`,
       name,
       color,
+      icon,
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
@@ -493,6 +494,7 @@ class DataService {
           id: spaceId,
           name: group.name,
           color: this.getRandomColor(),
+          icon: 'briefcase',
           createdAt: Date.now(),
           updatedAt: Date.now()
         };
