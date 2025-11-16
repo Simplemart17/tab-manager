@@ -1,8 +1,8 @@
 @import url("./fonts.css");
 
 :root {
-  /* Light mode (default) */
-  --bg: #f5f5fb;
+  /* Default to light mode; JS will set [data-theme] based on system */
+  --bg: #ffffff;
   --card: #ffffff;
   --muted: #6b7280;
   --accent: #ea4c89;
@@ -14,19 +14,30 @@
   --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.12);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0b12;
-    --card: #151523;
-    --muted: #9aa0a6;
-    --accent: #ea4c89;
-    --accent-2: #f472b6;
-    --text: #e6e6f0;
-    --primary-color: #914ce6;
-    --text-secondary: #9aa0a6;
-    --border-subtle: rgba(148, 163, 184, 0.15);
-    --shadow-soft: 0 26px 60px rgba(0, 0, 0, 0.6);
-  }
+html[data-theme="dark"] {
+  --bg: #0b0b12;
+  --card: #151523;
+  --muted: #9aa0a6;
+  --accent: #ea4c89;
+  --accent-2: #f472b6;
+  --text: #e6e6f0;
+  --primary-color: #914ce6;
+  --text-secondary: #9aa0a6;
+  --border-subtle: rgba(148, 163, 184, 0.15);
+  --shadow-soft: 0 26px 60px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="dark"] .auth-left {
+  background: radial-gradient(
+      1200px 600px at -10% -20%,
+      rgba(234, 76, 137, 0.25),
+      transparent 50%
+    ),
+    radial-gradient(
+      1000px 500px at 110% 110%,
+      rgba(244, 114, 182, 0.2),
+      transparent 50%
+    );
 }
 * {
   box-sizing: border-box;
@@ -64,16 +75,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(
-      1200px 600px at -10% -20%,
-      rgba(234, 76, 137, 0.25),
-      transparent 50%
-    ),
-    radial-gradient(
-      1000px 500px at 110% 110%,
-      rgba(244, 114, 182, 0.2),
-      transparent 50%
-    );
+  background: var(--bg);
 }
 .auth-left-inner {
   width: 100%;
@@ -174,6 +176,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background: var(--bg);
 }
 .card {
   width: 100%;
