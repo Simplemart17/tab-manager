@@ -5,6 +5,25 @@ import dbService from './db.js';
 function nowIso() { return new Date().toISOString(); }
 function slugify(name) { return String(name || '').toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,''); }
 
+
+function generateUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(1);
+  return (
+    hex() + hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + hex() + hex()
+  );
+}
+
+function isUuid(value) {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 // Global flag to disable sync operations
 let SYNC_DISABLED = false;
 
@@ -28,7 +47,7 @@ export async function syncAll() {
     console.log('SYNC DISABLED - syncAll skipped');
     return { ok: true, skipped: true, reason: 'Sync disabled' };
   }
-  
+
   // Set sync lock
   isSyncing = true;
   try {
@@ -50,7 +69,18 @@ async function _syncAllImpl() {
   const collections = local.collections || {};
   const userPreferences = local.userPreferences || {};
   const tabHistory = local.tabHistory || [];
-  const spaces = await dataService.getSpaces();
+
+  // Safely read spaces from IndexedDB; if it fails (e.g. connection closing), fall back to empty list
+  let spaces = [];
+  try {
+    const spacesFromDb = await dataService.getSpaces();
+    if (Array.isArray(spacesFromDb)) {
+      spaces = spacesFromDb;
+    }
+  } catch (error) {
+    console.warn('Failed to read spaces from IndexedDB during sync; treating as none:', error);
+    spaces = [];
+  }
 
   // Upsert user settings
   if (Object.keys(userPreferences).length) {
@@ -67,6 +97,7 @@ async function _syncAllImpl() {
     for (const s of spaces) {
       const name = s.name || 'Workspace';
       const color = s.color || '#914CE6';
+      const icon = s.icon || 'briefcase';
       // Try update existing by name; if not exists, insert
       const { data: wsExisting } = await supabase
         .from('workspaces')
@@ -76,18 +107,25 @@ async function _syncAllImpl() {
         .limit(1)
         .maybeSingle();
       if (wsExisting?.id) {
-        await supabase.from('workspaces').update({ color, updated_at: nowIso() }).eq('id', wsExisting.id);
+        await supabase.from('workspaces').update({ color, icon, updated_at: nowIso() }).eq('id', wsExisting.id);
       } else {
-        await supabase.from('workspaces').insert({ user_id: user.id, name, color, updated_at: nowIso() });
+        await supabase.from('workspaces').insert({ user_id: user.id, name, color, icon, updated_at: nowIso() });
       }
     }
   }
 
   // Upsert collections and tabs (prefer IndexedDB; fallback to chrome.storage.local)
-  let idbCollections = await dataService.getCollections();
+  let idbCollections = [];
+  try {
+    idbCollections = await dataService.getCollections();
+  } catch (error) {
+    console.warn('Failed to read collections from IndexedDB during sync; falling back to chrome.storage.local:', error);
+    idbCollections = [];
+  }
+
   if (!idbCollections || idbCollections.length === 0) {
-    const local = await chrome.storage.local.get(['collections']);
-    const localObj = local.collections || {};
+    const localCollections = await chrome.storage.local.get(['collections']);
+    const localObj = localCollections.collections || {};
     idbCollections = Object.values(localObj);
   }
 
@@ -112,10 +150,26 @@ async function _syncAllImpl() {
       }
     }
 
-    // If no workspace found, skip this collection (it has an invalid spaceId)
+    // If no workspace mapping was found, try to fall back gracefully
     if (!wsId) {
-      console.warn(`Collection "${coll.name}" has invalid spaceId "${coll.spaceId}", skipping sync`);
-      continue;
+      // 1) Try assigning to the first available space
+      const fallbackSpace = (spaces || [])[0];
+      if (fallbackSpace) {
+        wsName = fallbackSpace.name;
+        wsId = wsIdByName[wsName] || null;
+      }
+
+      // 2) If we still don't have a workspace id, log and skip
+      if (!wsId) {
+        console.warn(
+          `Collection "${coll.name}" has invalid spaceId "${coll.spaceId}" and no fallback workspace available, skipping sync`,
+        );
+        continue;
+      } else {
+        console.warn(
+          `Collection "${coll.name}" has invalid spaceId "${coll.spaceId}", assigning to fallback workspace "${wsName}"`,
+        );
+      }
     }
 
     const baseRow = {
@@ -146,10 +200,12 @@ async function _syncAllImpl() {
 
     if (tabs.length) {
       const rows = tabs.map((t, idx) => ({
+        // Use the local tab UUID when valid; otherwise generate a new UUID for Supabase
+        id: isUuid(t.id) ? t.id : generateUuid(),
         user_id: user.id,
         collection_id: remoteCollId,
-        url: t.url,
-        title: t.title || t.url,
+        url: t.url || '',
+        title: t.title || t.url || '',
         favicon: t.favicon || null,
         order_index: idx,
       }));
@@ -172,76 +228,8 @@ async function _syncAllImpl() {
     if (histErr) throw new Error(`History insert failed: ${histErr.message}`);
   }
 
-  // Delete collections from Supabase that no longer exist locally
-  const localCollectionIds = new Set((idbCollections || []).map(c => c.id));
-  const { data: remoteCollections } = await supabase
-    .from('collections')
-    .select('id')
-    .eq('user_id', user.id);
-
-  if (remoteCollections && remoteCollections.length > 0) {
-    const collectionsToDelete = remoteCollections
-      .filter(rc => !localCollectionIds.has(rc.id))
-      .map(rc => rc.id);
-
-    if (collectionsToDelete.length > 0) {
-      // Delete tabs first (foreign key constraint)
-      await supabase
-        .from('tabs')
-        .delete()
-        .in('collection_id', collectionsToDelete);
-
-      // Then delete collections
-      await supabase
-        .from('collections')
-        .delete()
-        .in('id', collectionsToDelete);
-    }
-  }
-
-  // Delete workspaces from Supabase that no longer exist locally
-  const localSpaceNames = new Set((spaces || []).map(s => s.name));
-  const { data: remoteWorkspaces } = await supabase
-    .from('workspaces')
-    .select('id, name')
-    .eq('user_id', user.id);
-
-  if (remoteWorkspaces && remoteWorkspaces.length > 0) {
-    const workspacesToDelete = remoteWorkspaces
-      .filter(rw => !localSpaceNames.has(rw.name))
-      .map(rw => rw.id);
-
-    if (workspacesToDelete.length > 0) {
-      // Get collections in these workspaces
-      const { data: collectionsInWorkspaces } = await supabase
-        .from('collections')
-        .select('id')
-        .in('workspace_id', workspacesToDelete);
-
-      if (collectionsInWorkspaces && collectionsInWorkspaces.length > 0) {
-        const collectionIds = collectionsInWorkspaces.map(c => c.id);
-
-        // Delete tabs first
-        await supabase
-          .from('tabs')
-          .delete()
-          .in('collection_id', collectionIds);
-
-        // Delete collections
-        await supabase
-          .from('collections')
-          .delete()
-          .in('workspace_id', workspacesToDelete);
-      }
-
-      // Finally delete workspaces
-      await supabase
-        .from('workspaces')
-        .delete()
-        .in('id', workspacesToDelete);
-    }
-  }
-
+  // NOTE: We no longer delete remote collections or workspaces based on local state.
+  // Supabase acts as the primary source of truth; local data may be partial/offline.
   return { ok: true };
 }
 
@@ -250,7 +238,7 @@ export async function pullAll() {
     console.log('SYNC DISABLED - pullAll skipped');
     return { ok: true, skipped: true, reason: 'Sync disabled' };
   }
-  
+
   // Don't pull if sync is in progress to avoid race conditions
   if (isSyncing) {
     return { ok: true, skipped: true };
@@ -264,7 +252,7 @@ export async function pullAll() {
   // Pull workspaces and merge with local spaces
   const { data: remoteWs } = await supabase
     .from('workspaces')
-    .select('id,name,color,updated_at')
+    .select('id,name,color,icon,updated_at')
     .eq('user_id', user.id)
     .order('name');
 
@@ -282,33 +270,40 @@ export async function pullAll() {
     for (const ws of remoteWs) {
       const name = ws.name;
       const color = ws.color || '#914CE6';
-      const localId = slugify(name);
-
-      wsIdToLocalSpaceId[ws.id] = localId;
-
+      const icon = ws.icon || 'briefcase';
       const existingSpace = existingSpacesMap[name];
+      let localId;
+
       if (existingSpace) {
-        // Update existing space if remote is newer or if color changed
+        // Reuse existing space id so collections stay linked
+        localId = existingSpace.id;
+
+        // Update existing space if remote is newer or if color/icon changed
         const remoteUpdatedAt = ws.updated_at ? new Date(ws.updated_at).getTime() : 0;
         const localUpdatedAt = existingSpace.updatedAt || 0;
 
-        if (remoteUpdatedAt >= localUpdatedAt || existingSpace.color !== color) {
+        if (remoteUpdatedAt >= localUpdatedAt || existingSpace.color !== color || existingSpace.icon !== icon) {
           await dbService.updateSpace({
             ...existingSpace,
             color,
+            icon,
             updatedAt: Date.now()
           });
         }
       } else {
-        // Add new space from remote
+        // Create new local space mapped to this remote workspace
+        localId = slugify(name);
         await dbService.addSpace({
           id: localId,
           name,
           color,
+          icon,
           createdAt: Date.now(),
           updatedAt: Date.now()
         });
       }
+
+      wsIdToLocalSpaceId[ws.id] = localId;
     }
   }
 
@@ -346,7 +341,7 @@ export async function pullAll() {
     const tabs = tabRows
       .filter(t => t.collection_id === c.id)
       .map(t => ({
-        id: `tab-${Math.random().toString(36).slice(2)}`,
+        id: generateUuid(),
         url: t.url,
         title: t.title || t.url,
         favicon: t.favicon || ''

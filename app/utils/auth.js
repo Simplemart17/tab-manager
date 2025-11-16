@@ -1,5 +1,29 @@
 // Auth page logic for Simple Tab Plus
 
+// Apply system theme to auth page
+function applySystemThemeToAuth() {
+  try {
+    const prefersDark =
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } catch (_) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+}
+
+function watchSystemThemeChanges() {
+  if (!window.matchMedia) return;
+  const mql = window.matchMedia('(prefers-color-scheme: dark)');
+  const handler = (e) => {
+    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+  };
+  if (mql.addEventListener) {
+    mql.addEventListener('change', handler);
+  } else if (mql.addListener) {
+    mql.addListener(handler);
+  }
+}
+
 function getModeFromHash() {
   const hash = window.location.hash || '#signin';
   return hash.toLowerCase().includes('signup') ? 'signup' : 'signin';
@@ -40,6 +64,10 @@ function redirectToApp() {
 
 // Initialize
 window.addEventListener('DOMContentLoaded', async () => {
+  // Apply system theme based on device setting
+  applySystemThemeToAuth();
+  watchSystemThemeChanges();
+
   // If already signed in, go to app immediately
   const sessionResp = await ensureAuthOrRedirect();
   if (sessionResp?.data?.session?.user) {

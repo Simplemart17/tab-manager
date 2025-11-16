@@ -64,9 +64,11 @@
             <div class="sidebar-header-left">
               <h3>Spaces</h3>
               <button id="sort-spaces-btn" class="sidebar-action-btn" title="Sort spaces">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 6 3 12 9"></polyline>
-                  <polyline points="18 15 18 21 12 15"></polyline>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="20" x2="8" y2="6"></line>
+                  <polyline points="5 9 8 6 11 9"></polyline>
+                  <line x1="16" y1="4" x2="16" y2="18"></line>
+                  <polyline points="13 15 16 18 19 15"></polyline>
                 </svg>
               </button>
             </div>
@@ -213,19 +215,73 @@
         <div class="settings-group">
           <h4>Appearance</h4>
           <div class="setting-item">
-            <label for="theme-select" id="theme-label">Theme</label>
+            <label for="theme-select" id="theme-label">Theme Mode</label>
             <select id="theme-select">
               <option value="light">Light</option>
               <option value="dark">Dark</option>
               <option value="system">System</option>
             </select>
           </div>
-        </div>
-        <div class="settings-group">
-          <h4>Sync</h4>
           <div class="setting-item">
-            <label for="auto-save-enabled">Auto-save tabs</label>
-            <input type="checkbox" id="auto-save-enabled">
+            <label>Color Theme</label>
+            <div class="color-theme-grid">
+              <button class="color-theme-btn" data-color="purple" title="Purple & Teal">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #914ce6;"></div>
+                  <div class="color-swatch" style="background-color: #4ecdc4;"></div>
+                </div>
+                <span>Purple</span>
+              </button>
+              <button class="color-theme-btn" data-color="blue" title="Blue & Cyan">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #3b82f6;"></div>
+                  <div class="color-swatch" style="background-color: #06b6d4;"></div>
+                </div>
+                <span>Blue</span>
+              </button>
+              <button class="color-theme-btn" data-color="emerald" title="Emerald & Teal">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #10b981;"></div>
+                  <div class="color-swatch" style="background-color: #14b8a6;"></div>
+                </div>
+                <span>Emerald</span>
+              </button>
+              <button class="color-theme-btn" data-color="rose" title="Rose & Pink">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #e11d48;"></div>
+                  <div class="color-swatch" style="background-color: #ec4899;"></div>
+                </div>
+                <span>Rose</span>
+              </button>
+              <button class="color-theme-btn" data-color="amber" title="Amber & Orange">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #d97706;"></div>
+                  <div class="color-swatch" style="background-color: #f97316;"></div>
+                </div>
+                <span>Amber</span>
+              </button>
+              <button class="color-theme-btn" data-color="indigo" title="Indigo & Violet">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #4f46e5;"></div>
+                  <div class="color-swatch" style="background-color: #8b5cf6;"></div>
+                </div>
+                <span>Indigo</span>
+              </button>
+              <button class="color-theme-btn" data-color="slate" title="Slate & Gray">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #475569;"></div>
+                  <div class="color-swatch" style="background-color: #64748b;"></div>
+                </div>
+                <span>Slate</span>
+              </button>
+              <button class="color-theme-btn" data-color="cyan" title="Cyan & Teal">
+                <div class="color-preview">
+                  <div class="color-swatch" style="background-color: #0891b2;"></div>
+                  <div class="color-swatch" style="background-color: #06b6d4;"></div>
+                </div>
+                <span>Cyan</span>
+              </button>
+            </div>
           </div>
         </div>
         <div class="settings-group">
@@ -253,6 +309,11 @@
         <div class="color-picker">
           <input type="color" id="workspace-color" value="#4f5bd5">
         </div>
+        <div class="icon-picker">
+          <label>Icon</label>
+          <div id="workspace-icon-grid" class="icon-grid"></div>
+          <input type="hidden" id="workspace-icon" value="briefcase">
+        </div>
         <div class="modal-actions">
           <button id="cancel-workspace" class="button secondary">Cancel</button>
           <button id="confirm-workspace" class="button primary">Create</button>
@@ -268,6 +329,11 @@
         <div class="color-picker">
           <label for="rename-workspace-color">Color</label>
           <input type="color" id="rename-workspace-color" value="#4f5bd5">
+        </div>
+        <div class="icon-picker">
+          <label>Icon</label>
+          <div id="rename-workspace-icon-grid" class="icon-grid"></div>
+          <input type="hidden" id="rename-workspace-icon" value="briefcase">
         </div>
         <div class="modal-actions">
           <button id="cancel-rename-workspace" class="button secondary">Cancel</button>
@@ -332,7 +398,7 @@
       </div>
     </div>
 
-    <script type="module" src="../utils/newtab.js"></script>
+    <script type="module" src="../../dist/newtab.js"></script>
   </div>
 </body>
 </html>

@@ -1,8 +1,95 @@
 // New Tab script for Simple Tab Manager
 import dataService from "../services/data.js";
+
+function generateUuid() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(1);
+  return (
+    hex() + hex() + "-" +
+    hex() + "-" +
+    hex() + "-" +
+    hex() + "-" +
+    hex() + hex() + hex()
+  );
+}
+
 import dragDropService from "../services/dragdrop.js";
 import searchService from "../services/search.js";
 import searchFilters from "../components/search-filters.js";
+
+// Icon definitions for spaces
+const SPACE_ICONS = {
+  briefcase: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>',
+  folder: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>',
+  bookmark: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>',
+  star: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 10.26 24 10.27 17.18 16.70 20.27 25 12 19.54 3.73 25 6.82 16.70 0 10.27 8.91 10.26 12 2"></polygon></svg>',
+  zap: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+  heart: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+  archive: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><path d="M10 12v4"></path><path d="M14 12v4"></path></svg>',
+  layers: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 2 17 12 22 22 17 22 7 12 2"></polygon><polyline points="2 7 12 12 22 7"></polyline><polyline points="2 17 12 12 22 17"></polyline></svg>',
+  grid: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>',
+  compass: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 15 12 12 16 9 12 12 8"></polygon></svg>',
+  globe: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>',
+  music: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+  camera: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>',
+  code: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+  clock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+  flag: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>',
+  tag: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
+  users: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+  award: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8 14 12 17 16 14"></polyline><line x1="12" y1="17" x2="12" y2="23"></line><line x1="9" y1="23" x2="15" y2="23"></line></svg>',
+  home: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
+  link: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>',
+  list: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>',
+  lock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>',
+  mail: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>',
+  map: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>',
+  message: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+  package: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+  phone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
+  play: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>',
+  plus: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+  power: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>',
+  refresh: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"></path></svg>',
+  search: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+  share: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>',
+  shield: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
+  shopping: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
+  smile: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>',
+  sun: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>',
+  trash: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>',
+  unlock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>',
+  upload: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>',
+  watch: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"></circle><polyline points="12 9 12 12 13.5 13.5"></polyline><path d="M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82h-2.32a2 2 0 0 1-2-1.82l-.35-3.83m.01-10.7l.35-3.83A2 2 0 0 1 9.89 1h2.32a2 2 0 0 1 2 1.82l.35 3.83"></path></svg>',
+  wifi: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M9.13 16.55a6 6 0 0 1 5.74 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>',
+  activity: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>',
+  alert: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  anchor: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="8" x2="12" y2="17"></line><path d="M9 17H5a2 2 0 0 0-2 2v2h16v-2a2 2 0 0 0-2-2h-4"></path></svg>',
+  arrow: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
+  bell: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
+  book: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+  box: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+  calendar: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+  cast: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path></svg>',
+  check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+  chevron: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+  circle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>',
+  clipboard: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>',
+  coffee: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>',
+  command: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"></path></svg>',
+  copy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+  corner: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 15 21 19 17 19"></polyline><line x1="21" y1="4" x2="3" y2="4"></line><line x1="21" y1="4" x2="21" y2="14"></line><line x1="3" y1="4" x2="3" y2="20"></line><line x1="3" y1="20" x2="7" y2="20"></line></svg>',
+  cpu: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>',
+  database: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14a9 3 0 0 0 18 0V5"></path><ellipse cx="12" cy="19" rx="9" ry="3"></ellipse></svg>',
+  disc: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="11"></circle></svg>',
+  download: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
+  edit: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+  eye: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+  file: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>',
+  filter: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>',
+};
 
 // DOM Elements
 const collectionsList = document.getElementById("collections-list");
@@ -71,13 +158,15 @@ const confirmSaveBtn = document.getElementById("confirm-save");
 
 // Settings Modal
 const themeSelect = document.getElementById("theme-select");
-const autoSaveEnabledCheck = document.getElementById("auto-save-enabled");
 const cancelSettingsBtn = document.getElementById("cancel-settings");
 const saveSettingsBtn = document.getElementById("save-settings");
+const colorThemeButtons = document.querySelectorAll(".color-theme-btn");
 
 // Workspace Modal
 const workspaceNameInput = document.getElementById("workspace-name");
 const workspaceColorInput = document.getElementById("workspace-color");
+const workspaceIconInput = document.getElementById("workspace-icon");
+const workspaceIconGrid = document.getElementById("workspace-icon-grid");
 const cancelWorkspaceBtn = document.getElementById("cancel-workspace");
 const confirmWorkspaceBtn = document.getElementById("confirm-workspace");
 
@@ -87,6 +176,12 @@ const renameWorkspaceNameInput = document.getElementById(
 );
 const renameWorkspaceColorInput = document.getElementById(
   "rename-workspace-color"
+);
+const renameWorkspaceIconInput = document.getElementById(
+  "rename-workspace-icon"
+);
+const renameWorkspaceIconGrid = document.getElementById(
+  "rename-workspace-icon-grid"
 );
 const cancelRenameWorkspaceBtn = document.getElementById(
   "cancel-rename-workspace"
@@ -159,6 +254,7 @@ let isBulkSelectMode = false;
 let spacesSortAscending = true; // Track sort order for spaces
 let tabToMove = null; // Track the tab being moved
 let collectionOfTabToMove = null; // Track the collection of the tab being moved
+let selectedColorTheme = "purple"; // Track selected color theme
 
 /**
  * Authentication helper function with retry logic
@@ -248,6 +344,25 @@ function startSessionMonitoring() {
     }
   }, 5 * 60 * 1000); // 5 minutes
 }
+
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'refreshDataFromServer') {
+    // Refresh data from server (Supabase is now source of truth)
+    console.log('Refreshing data from server...');
+    loadSpaces();
+    loadCollections();
+    loadOpenTabs();
+
+    // Show notification if requested
+    if (request.showNotification && request.message) {
+      const notificationType = request.notificationType || 'success';
+      showNotification(request.message, notificationType);
+    }
+
+    sendResponse({ success: true });
+  }
+});
 
 // Initialize
 document.addEventListener("DOMContentLoaded", async () => {
@@ -389,7 +504,7 @@ async function loadUserPreferences() {
     const settings = await dataService.getSettings();
     userPreferences = settings;
 
-    // Apply theme
+    // Apply theme mode
     if (userPreferences.theme === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     } else if (userPreferences.theme === "light") {
@@ -405,9 +520,21 @@ async function loadUserPreferences() {
       }
     }
 
+    // Apply color theme
+    const colorTheme = userPreferences.colorTheme || "purple";
+    selectedColorTheme = colorTheme;
+    document.documentElement.setAttribute("data-color-theme", colorTheme);
+
     // Update form elements
     themeSelect.value = userPreferences.theme;
-    autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
+
+    // Update color theme button selection
+    colorThemeButtons.forEach((btn) => {
+      btn.classList.remove("active");
+      if (btn.dataset.color === colorTheme) {
+        btn.classList.add("active");
+      }
+    });
   } catch (error) {
     console.error("Error loading user preferences:", error);
   }
@@ -451,9 +578,23 @@ function renderWorkspaces(spaces) {
       workspaceItem.classList.add("active");
     }
 
+    const iconTextContainer = document.createElement("div");
+    iconTextContainer.className = "icon-text-container";
+
+    // Add icon if available
+    if (space.icon && SPACE_ICONS[space.icon]) {
+      const iconSpan = document.createElement("span");
+      iconSpan.className = "sidebar-item-icon";
+      iconSpan.innerHTML = SPACE_ICONS[space.icon];
+      iconTextContainer.appendChild(iconSpan);
+    }
+
     const nameSpan = document.createElement("span");
     nameSpan.textContent = space.name;
-    workspaceItem.appendChild(nameSpan);
+    iconTextContainer.appendChild(nameSpan);
+
+    // Always append the container to the workspace item
+    workspaceItem.appendChild(iconTextContainer);
 
     // Add action buttons
     const actionsDiv = document.createElement("div");
@@ -468,7 +609,7 @@ function renderWorkspaces(spaces) {
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
       </svg>
     `;
-    renameBtn.title = "Rename workspace";
+
     renameBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       showRenameWorkspaceModal(space);
@@ -483,7 +624,7 @@ function renderWorkspaces(spaces) {
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
       </svg>
     `;
-    deleteBtn.title = "Delete workspace";
+
     deleteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       showDeleteWorkspaceModal(space);
@@ -613,7 +754,7 @@ function createCollectionGroup(collection) {
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
     </svg>
   `;
-  renameBtn.title = "Rename collection";
+
   renameBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showRenameCollectionModal(collection);
@@ -629,7 +770,7 @@ function createCollectionGroup(collection) {
       <line x1="9" y1="12" x2="15" y2="12"></line>
     </svg>
   `;
-  dedupeBtn.title = "Remove duplicate tabs";
+
   dedupeBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     deduplicateTabs(collection.id);
@@ -644,7 +785,7 @@ function createCollectionGroup(collection) {
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
   `;
-  deleteBtn.title = "Delete collection";
+
   deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showDeleteCollectionModal(collection);
@@ -913,7 +1054,7 @@ function createTabCard(tab) {
       <polyline points="7 3 7 8 15 8"></polyline>
     </svg>
   `;
-  saveBtn.title = "Save tab";
+
   saveBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showSaveModal([tab]);
@@ -927,7 +1068,7 @@ function createTabCard(tab) {
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   `;
-  closeBtn.title = "Close tab";
+
   closeBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     chrome.tabs.remove(tab.id);
@@ -948,6 +1089,36 @@ function createTabCard(tab) {
 
   // Do not enable drag for open tabs to collections
   return card;
+}
+
+// Initialize icon picker
+function initializeIconPicker(gridElement, inputElement, selectedIcon = 'briefcase') {
+  gridElement.innerHTML = '';
+
+  Object.entries(SPACE_ICONS).forEach(([iconName, iconSvg]) => {
+    const btn = document.createElement('button');
+    btn.className = 'icon-btn';
+    if (iconName === selectedIcon) {
+      btn.classList.add('selected');
+    }
+    btn.type = 'button';
+    btn.innerHTML = iconSvg;
+    btn.title = iconName;
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Remove selected class from all buttons
+      gridElement.querySelectorAll('.icon-btn').forEach(b => {
+        b.classList.remove('selected');
+      });
+      // Add selected class to clicked button
+      btn.classList.add('selected');
+      // Update hidden input
+      inputElement.value = iconName;
+    });
+
+    gridElement.appendChild(btn);
+  });
 }
 
 // Set up event listeners
@@ -1019,6 +1190,21 @@ function setupEventListeners() {
   // Save settings button
   saveSettingsBtn.addEventListener("click", () => {
     saveSettings();
+  });
+
+  // Color theme buttons
+  colorThemeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const colorTheme = btn.dataset.color;
+      selectedColorTheme = colorTheme;
+
+      // Update active state
+      colorThemeButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // Apply color theme immediately
+      document.documentElement.setAttribute("data-color-theme", colorTheme);
+    });
   });
 
   // Export data button
@@ -1414,6 +1600,8 @@ function showWorkspaceModal() {
   workspaceModal.classList.add("show");
   workspaceNameInput.value = "";
   workspaceColorInput.value = "#ff5c8d";
+  workspaceIconInput.value = "briefcase";
+  initializeIconPicker(workspaceIconGrid, workspaceIconInput, "briefcase");
 }
 
 // Hide workspace modal
@@ -1527,9 +1715,7 @@ async function saveCollection() {
         }
 
         return {
-          id: `tab-${Date.now()}-${Math.random()
-            .toString(36)
-            .substring(2, 11)}`,
+          id: generateUuid(),
           url: tab.url,
           title: tab.title,
           favicon: favicon,
@@ -1582,9 +1768,7 @@ async function saveCollection() {
         }
 
         return {
-          id: `tab-${Date.now()}-${Math.random()
-            .toString(36)
-            .substring(2, 11)}`,
+          id: generateUuid(),
           url: tab.url,
           title: tab.title,
           favicon: favicon,
@@ -1614,7 +1798,7 @@ async function saveSettings() {
   try {
     const updatedPreferences = {
       theme: themeSelect.value,
-      autoSaveEnabled: autoSaveEnabledCheck.checked,
+      colorTheme: selectedColorTheme,
     };
 
     // Update settings in database
@@ -1623,7 +1807,7 @@ async function saveSettings() {
     // Update local state
     userPreferences = updatedPreferences;
 
-    // Apply theme
+    // Apply theme mode
     if (userPreferences.theme === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     } else if (userPreferences.theme === "light") {
@@ -1639,6 +1823,9 @@ async function saveSettings() {
       }
     }
 
+    // Apply color theme
+    document.documentElement.setAttribute("data-color-theme", selectedColorTheme);
+
     hideSettingsModal();
 
     // Show success notification
@@ -1653,6 +1840,7 @@ async function saveSettings() {
 async function createWorkspace() {
   const name = workspaceNameInput.value.trim();
   const color = workspaceColorInput.value;
+  const icon = workspaceIconInput.value || "briefcase";
 
   if (!name) {
     alert("Please enter a workspace name");
@@ -1661,7 +1849,7 @@ async function createWorkspace() {
 
   try {
     // Create workspace
-    await dataService.createSpace(name, color);
+    await dataService.createSpace(name, color, icon);
 
     // Reload spaces
     await loadSpaces();
@@ -1901,6 +2089,8 @@ function showRenameWorkspaceModal(space) {
   currentWorkspaceForAction = space;
   renameWorkspaceNameInput.value = space.name;
   renameWorkspaceColorInput.value = space.color || "#4f5bd5";
+  renameWorkspaceIconInput.value = space.icon || "briefcase";
+  initializeIconPicker(renameWorkspaceIconGrid, renameWorkspaceIconInput, space.icon || "briefcase");
   renameWorkspaceModal.classList.add("show");
 }
 
@@ -1912,6 +2102,7 @@ function hideRenameWorkspaceModal() {
 async function renameWorkspace() {
   const name = renameWorkspaceNameInput.value.trim();
   const color = renameWorkspaceColorInput.value;
+  const icon = renameWorkspaceIconInput.value || "briefcase";
 
   if (!name) {
     alert("Please enter a workspace name");
@@ -1922,6 +2113,7 @@ async function renameWorkspace() {
     await dataService.updateSpace(currentWorkspaceForAction.id, {
       name,
       color,
+      icon,
     });
     await loadSpaces();
     hideRenameWorkspaceModal();

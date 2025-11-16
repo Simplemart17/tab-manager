@@ -1,6 +1,21 @@
 // Popup script for Simple Tab Manager
 import dataService from '../services/data.js';
 
+function generateUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(1);
+  return (
+    hex() + hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + '-' +
+    hex() + hex() + hex()
+  );
+}
+
+
 
 // DOM Elements
 const openTabsList = document.getElementById('open-tabs');
@@ -27,8 +42,6 @@ const confirmSaveBtn = document.getElementById('confirm-save');
 
 // Settings Modal
 const themeSelect = document.getElementById('theme-select');
-const syncEnabledCheck = document.getElementById('sync-enabled');
-const autoSaveEnabledCheck = document.getElementById('auto-save-enabled');
 const cancelSettingsBtn = document.getElementById('cancel-settings');
 const saveSettingsBtn = document.getElementById('save-settings');
 
@@ -36,7 +49,7 @@ const saveSettingsBtn = document.getElementById('save-settings');
 
 // State
 let currentTabs = [];
-let collections = {};
+let collections = [];
 let selectedTabs = [];
 let activeWorkspace = '';
 let workspaces = [];
@@ -85,12 +98,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Hide Sign Up when user is authenticated
     if (authRegisterBtn) authRegisterBtn.style.display = 'none';
 
-    // Continue normal initialization
+    // Initialize data service and UI
+    await dataService.init();
     await loadUserPreferences();
+    await loadWorkspaces();
     await loadCollections();
     await loadOpenTabs();
     setupEventListeners();
-    await loadWorkspaces();
   });
 });
 
@@ -113,24 +127,20 @@ async function loadUserPreferences() {
 
       // Update form elements
       themeSelect.value = userPreferences.theme;
-      syncEnabledCheck.checked = userPreferences.syncEnabled;
-      autoSaveEnabledCheck.checked = userPreferences.autoSaveEnabled;
     }
   } catch (error) {
     handleChromeError(error);
   }
 }
 
-// Load collections from storage
+// Load collections from IndexedDB/Supabase (via dataService)
 async function loadCollections() {
   try {
-    const result = await safeApiCall(() => chrome.storage.local.get(['collections']));
-    if (result.collections) {
-      collections = result.collections;
-      renderCollections();
-    }
+    // Load all collections and then filter by active workspace in memory
+    collections = await dataService.getCollections();
+    filterCollectionsByWorkspace(activeWorkspace);
   } catch (error) {
-    handleChromeError(error);
+    console.error('Failed to load collections', error);
   }
 }
 // Load workspaces (dynamic)
@@ -143,7 +153,6 @@ async function loadWorkspaces() {
     }
     renderWorkspaces();
     populateWorkspaceSelect();
-    filterCollectionsByWorkspace(activeWorkspace);
   } catch (e) {
     console.error('Failed to load workspaces', e);
   }
@@ -242,7 +251,7 @@ function createTabElement(tab) {
       <polyline points="7 3 7 8 15 8"></polyline>
     </svg>
   `;
-  saveBtn.title = 'Save tab';
+
   saveBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     showSaveModal([tab]);
@@ -256,7 +265,7 @@ function createTabElement(tab) {
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   `;
-  closeBtn.title = 'Close tab';
+
   closeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     chrome.tabs.remove(tab.id);
@@ -282,7 +291,7 @@ function createTabElement(tab) {
 function renderCollections() {
   collectionsList.innerHTML = '';
 
-  Object.values(collections).forEach(collection => {
+  collections.forEach(collection => {
     const collectionElement = createCollectionElement(collection);
     collectionsList.appendChild(collectionElement);
   });
@@ -295,8 +304,10 @@ function createCollectionElement(collection) {
   collectionElement.dataset.collectionId = collection.id;
 
   // Find the workspace color
-  const workspace = workspaces.find(w => w.id === collection.workspace) || workspaces[0];
-  collectionElement.style.borderLeft = `4px solid ${workspace.color}`;
+  const workspace = workspaces.find(w => w.id === collection.spaceId) || workspaces[0];
+  if (workspace && workspace.color) {
+    collectionElement.style.borderLeft = `4px solid ${workspace.color}`;
+  }
 
   const header = document.createElement('div');
   header.className = 'collection-header';
@@ -521,72 +532,76 @@ function hideSettingsModal() {
 
 
 // Save collection
-function saveCollection() {
+async function saveCollection() {
   const name = collectionNameInput.value.trim();
-  const space = collectionSpaceSelect.value;
+  const spaceId = collectionSpaceSelect.value;
 
   if (!name) {
     alert('Please enter a collection name');
     return;
   }
 
-  const collectionId = `collection-${Date.now()}`;
+  try {
+    const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
+    const tabs = selectedTabs.map(tab => ({
+      id: generateUuid(),
+      chromeTabId: tab.id,
+      url: tab.url,
+      title: tab.title,
+      favicon: tab.favIconUrl || defaultIcon
+    }));
 
-  const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
-  const tabs = selectedTabs.map(tab => ({
-    id: tab.id,
-    url: tab.url,
-    title: tab.title,
-    favicon: tab.favIconUrl || defaultIcon
-  }));
+    // Persist via dataService (IndexedDB + immediate Supabase sync)
+    const newCollection = await dataService.createCollection(name, spaceId, tabs);
 
-  const collection = {
-    id: collectionId,
-    name,
-    tabs,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    workspace: space
-  };
-
-  // Save to collections
-  collections[collectionId] = collection;
-  chrome.storage.local.set({ collections }, () => {
-    filterCollectionsByWorkspace(activeWorkspace);
     hideSaveModal();
 
-    // Send message to background script
-    chrome.runtime.sendMessage({
-      action: 'saveCollection',
-      collection
-    });
-  });
+    // Refresh local collections list and UI
+    collections = await dataService.getCollections();
+    filterCollectionsByWorkspace(activeWorkspace);
+  } catch (error) {
+    console.error('Failed to save collection', error);
+    alert('Failed to save collection. Please try again.');
+  }
 }
 
 // Open collection tabs
-function openCollection(collectionId) {
-  chrome.runtime.sendMessage({
-    action: 'openTabs',
-    collectionId
-  });
+async function openCollection(collectionId) {
+  try {
+    const collection = await dataService.getCollection(collectionId);
+    if (!collection || !collection.tabs || collection.tabs.length === 0) return;
+
+    collection.tabs.forEach(tab => {
+      chrome.tabs.create({
+        url: tab.url,
+        active: false
+      });
+    });
+  } catch (error) {
+    console.error('Failed to open collection', error);
+  }
 }
 
 // Delete collection
-function deleteCollection(collectionId) {
-  if (confirm('Are you sure you want to delete this collection?')) {
-    delete collections[collectionId];
-    chrome.storage.local.set({ collections }, () => {
-      renderCollections();
-    });
+async function deleteCollection(collectionId) {
+  if (!confirm('Are you sure you want to delete this collection?')) return;
+
+  try {
+    await dataService.deleteCollection(collectionId);
+
+    // Refresh local collections list and UI
+    collections = await dataService.getCollections();
+    filterCollectionsByWorkspace(activeWorkspace);
+  } catch (error) {
+    console.error('Failed to delete collection', error);
+    alert('Failed to delete collection. Please try again.');
   }
 }
 
 // Save settings
 function saveSettings() {
   userPreferences = {
-    theme: themeSelect.value,
-    syncEnabled: syncEnabledCheck.checked,
-    autoSaveEnabled: autoSaveEnabledCheck.checked
+    theme: themeSelect.value
   };
 
   chrome.storage.local.set({ userPreferences }, () => {
@@ -629,15 +644,15 @@ function syncTabs() {
     chrome.runtime.sendMessage({ action: 'syncTabs' });
     return;
   }
-  
+
   // Prevent multiple sync operations
   if (syncBtn.classList.contains('syncing')) return;
-  
+
   // Add syncing state - this will trigger the CSS animation and disable the button
   syncBtn.classList.add('syncing');
   syncBtn.disabled = true;
-  
-  chrome.runtime.sendMessage({ action: 'syncTabs' }, (response) => {
+
+  chrome.runtime.sendMessage({ action: 'syncTabs' }, () => {
     // Remove syncing state after a minimum duration to ensure user sees the animation
     setTimeout(() => {
       if (syncBtn) {
@@ -653,8 +668,8 @@ function syncTabs() {
 function filterCollectionsByWorkspace(workspaceId) {
   collectionsList.innerHTML = '';
 
-  Object.values(collections)
-    .filter(collection => !workspaceId || collection.workspace === workspaceId)
+  collections
+    .filter(collection => !workspaceId || collection.spaceId === workspaceId)
     .forEach(collection => {
       const collectionElement = createCollectionElement(collection);
       collectionsList.appendChild(collectionElement);

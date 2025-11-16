@@ -6,11 +6,27 @@
  * Unauthenticated users are automatically redirected to the auth page.
  * All data is synced to Supabase and requires a valid user session.
  */
-import { syncAll, pullAll, bidirectionalSync, startRealtime, stopRealtime } from './services/sync-service.js';
+import { bidirectionalSync, pullAll, startRealtime, stopRealtime } from './services/sync-service.js';
 import { signUp, signIn, signOut, getSession, validateSession } from './services/auth-service.js';
 import { migrateLocalToCloud } from './services/migration-service.js';
-const SYNC_INTERVAL = 86400000; // 24 hours in milliseconds (daily sync)
+import dataService from './services/data.js';
+
+// Configurable sync interval (default: 5 minutes = 300000 milliseconds)
+let SYNC_INTERVAL = 300000; // 5 minutes in milliseconds
 let realtimeDispose = null;
+
+// Function to update sync interval
+function setSyncInterval(intervalMinutes) {
+  SYNC_INTERVAL = intervalMinutes * 60 * 1000;
+  console.log(`Sync interval updated to ${intervalMinutes} minutes (${SYNC_INTERVAL}ms)`);
+
+  // Clear existing alarm and create new one
+  chrome.alarms.clear('syncTabs', () => {
+    chrome.alarms.create('syncTabs', {
+      periodInMinutes: intervalMinutes
+    });
+  });
+}
 
 // Check if extension context is valid
 const isExtensionContextValid = () => {
@@ -36,7 +52,6 @@ const safeApiCall = async (apiCall) => {
 };
 
 // Tab management state
-let collections = {};
 let syncedTabs = {};
 let userPreferences = {
   theme: 'dark',
@@ -46,12 +61,8 @@ let userPreferences = {
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(() => {
-  // Load stored data if available
-  chrome.storage.local.get(['collections', 'userPreferences'], (result) => {
-    if (result.collections) {
-      collections = result.collections;
-    }
-
+  // Load stored user preferences if available
+  chrome.storage.local.get(['userPreferences'], (result) => {
     if (result.userPreferences) {
       userPreferences = result.userPreferences;
     } else {
@@ -67,9 +78,9 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['page', 'link']
   });
 
-  // Setup alarm for daily syncing (24 hours)
+  // Setup alarm for periodic syncing (default: 5 minutes)
   chrome.alarms.create('syncTabs', {
-    periodInMinutes: 1440 // 24 hours
+    periodInMinutes: 5 // 5 minutes (configurable via setSyncInterval)
   });
 });
 
@@ -124,12 +135,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
     switch (request.action) {
       case 'getCollections':
-        sendResponse({ collections });
-        break;
+        safeApiCall(async () => {
+          const collections = await dataService.getCollections();
+          sendResponse({ collections });
+        }).catch(handleError);
+        return true;
 
       case 'saveCollection':
         safeApiCall(async () => {
-          await saveCollection(request.collection);
+          await dataService.createCollection(request.collection.name, request.collection.spaceId, request.collection.tabs || []);
           sendResponse({ success: true });
         }).catch(handleError);
         return true;
@@ -157,7 +171,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       case 'syncTabs':
         safeApiCall(async () => {
-          await syncTabs();
+          // isManualSync = true indicates this is from the sync button (not background sync)
+          await syncTabs(true);
+          sendResponse({ success: true });
+        }).catch(handleError);
+        return true;
+
+      case 'immediateSyncTabs':
+        safeApiCall(async () => {
+          // Immediate sync triggered from data operations (not manual)
+          await syncTabs(false);
           sendResponse({ success: true });
         }).catch(handleError);
         return true;
@@ -211,53 +234,104 @@ function saveTabToHistory(tab) {
   });
 }
 
-function handleTabRemoval(tabId) {
-  // Check if tab is in any collection and update UI if needed
-  for (const collectionId in collections) {
-    const tabIndex = collections[collectionId].tabs.findIndex(tab => tab.id === tabId);
-    if (tabIndex !== -1) {
-      // Tab was in a collection, update UI
-      chrome.runtime.sendMessage({
-        action: 'tabRemoved',
-        collectionId,
-        tabId
-      });
+async function handleTabRemoval(tabId) {
+  try {
+    const collections = await dataService.getCollections();
+    for (const collection of collections) {
+      const tabs = collection.tabs || [];
+      const tabIndex = tabs.findIndex(tab => (tab.chromeTabId === tabId) || (tab.id === tabId));
+      if (tabIndex !== -1) {
+        // Tab was in a collection, update UI
+        chrome.runtime.sendMessage({
+          action: 'tabRemoved',
+          collectionId: collection.id,
+          tabId
+        });
+      }
     }
+  } catch (error) {
+    console.error('Failed to handle tab removal', error);
   }
 }
 
-function saveCollection(collection) {
-  collections[collection.id] = collection;
-  chrome.storage.local.set({ collections });
+async function openTabsInCollection(collectionId) {
+  try {
+    const collection = await dataService.getCollection(collectionId);
+    if (!collection || !collection.tabs || collection.tabs.length === 0) return;
 
-  // If sync is enabled, push to cloud
-  if (userPreferences.syncEnabled) {
-    syncTabs();
-  }
-}
-
-function openTabsInCollection(collectionId) {
-  const collection = collections[collectionId];
-  if (!collection) return;
-
-  collection.tabs.forEach(tab => {
-    chrome.tabs.create({
-      url: tab.url,
-      active: false
+    collection.tabs.forEach(tab => {
+      chrome.tabs.create({
+        url: tab.url,
+        active: false
+      });
     });
-  });
+  } catch (error) {
+    console.error('Failed to open tabs in collection', error);
+  }
 }
 
 function closeTabsInCollection(tabIds) {
   chrome.tabs.remove(tabIds);
 }
 
-async function syncTabs() {
+async function syncTabs(isManualSync = false) {
   try {
     // Perform bidirectional sync: push local changes and pull remote changes
-    await bidirectionalSync();
+    const result = await bidirectionalSync();
+
+    if (result.ok) {
+      console.log('Sync completed successfully');
+
+      // If manual sync (from sync button), notify user and refresh UI
+      if (isManualSync) {
+        // Send message to all tabs to refresh data from server and show notification
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'refreshDataFromServer',
+              showNotification: true,
+              message: 'Sync successfully completed'
+            }).catch(() => {
+              // Ignore errors for tabs that don't have content script
+            });
+          });
+        });
+      }
+    } else {
+      console.warn('Sync failed:', result.reason);
+      if (isManualSync) {
+        // Notify user of sync failure
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'refreshDataFromServer',
+              showNotification: true,
+              message: `Sync failed: ${result.reason || 'Unknown error'}`,
+              notificationType: 'error'
+            }).catch(() => {
+              // Ignore errors for tabs that don't have content script
+            });
+          });
+        });
+      }
+    }
   } catch (e) {
     console.warn('Sync skipped or failed:', e?.message || e);
+    if (isManualSync) {
+      // Notify user of sync error
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'refreshDataFromServer',
+            showNotification: true,
+            message: `Sync error: ${e?.message || 'An error occurred during sync'}`,
+            notificationType: 'error'
+          }).catch(() => {
+            // Ignore errors for tabs that don't have content script
+          });
+        });
+      });
+    }
   }
 }
 
