@@ -135,6 +135,26 @@ class DataService {
     }
   }
 
+  /**
+   * Ensure there is at least one space for the current user.
+   * If none exist, create a default "Personal" space.
+   * Returns the first existing space or the newly created default.
+   */
+  async ensureDefaultSpace() {
+    await this.init();
+    const spaces = await dbService.getSpaces();
+
+    if (Array.isArray(spaces) && spaces.length > 0) {
+      return spaces[0];
+    }
+
+    // Create a default "Personal" space for new users
+    const defaultColor = '#914CE6';
+    const defaultIcon = 'home';
+    const space = await this.createSpace('Personal', defaultColor, defaultIcon);
+    return space;
+  }
+
   // Spaces methods
   async getSpaces() {
     await this.init();

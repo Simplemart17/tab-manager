@@ -85,6 +85,40 @@ const safeApiCall = async (apiCall) => {
   }
 };
 
+function showNotification(message, type = 'success') {
+  try {
+    const existing = document.querySelector('.notification');
+    if (existing) existing.remove();
+
+    const container = document.createElement('div');
+    container.className = 'notification ' + type;
+    container.textContent = message;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close';
+    closeBtn.setAttribute('aria-label', 'Close notification');
+    closeBtn.innerHTML = '\u00d7';
+
+    closeBtn.addEventListener('click', () => {
+      container.classList.add('hide');
+      setTimeout(() => container.remove(), 200);
+    });
+
+    container.appendChild(closeBtn);
+    document.body.appendChild(container);
+
+    setTimeout(() => {
+      if (!container.classList.contains('hide')) {
+        container.classList.add('hide');
+        setTimeout(() => container.remove(), 200);
+      }
+    }, 5000);
+  } catch (e) {
+    console.error('Failed to show notification', e);
+  }
+}
+
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   // Check auth: if not signed in, open auth page in a new tab and close popup
@@ -124,6 +158,10 @@ async function loadUserPreferences() {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
       }
+
+      // Apply color theme (keep in sync with Supabase value)
+      const colorTheme = userPreferences.colorTheme || 'purple';
+      document.documentElement.setAttribute('data-color-theme', colorTheme);
 
       // Update form elements
       themeSelect.value = userPreferences.theme;
@@ -534,14 +572,28 @@ function hideSettingsModal() {
 // Save collection
 async function saveCollection() {
   const name = collectionNameInput.value.trim();
-  const spaceId = collectionSpaceSelect.value;
 
   if (!name) {
-    alert('Please enter a collection name');
+    showNotification('Please enter a collection name', 'error');
     return;
   }
 
   try {
+    // Ensure there is at least one workspace/space; for new users, create a default "Personal" space
+    if (!workspaces || workspaces.length === 0) {
+      const defaultSpace = await dataService.ensureDefaultSpace();
+      workspaces = [defaultSpace];
+      activeWorkspace = defaultSpace.id;
+      renderWorkspaces();
+      populateWorkspaceSelect();
+    }
+
+    const spaceId = collectionSpaceSelect.value || activeWorkspace;
+    if (!spaceId) {
+      showNotification('Please select a workspace', 'error');
+      return;
+    }
+
     const defaultIcon = chrome.runtime.getURL('app/assets/icons/icon16.png');
     const tabs = selectedTabs.map(tab => ({
       id: generateUuid(),
@@ -561,7 +613,7 @@ async function saveCollection() {
     filterCollectionsByWorkspace(activeWorkspace);
   } catch (error) {
     console.error('Failed to save collection', error);
-    alert('Failed to save collection. Please try again.');
+    showNotification('Failed to save collection. Please try again.', 'error');
   }
 }
 
@@ -594,13 +646,15 @@ async function deleteCollection(collectionId) {
     filterCollectionsByWorkspace(activeWorkspace);
   } catch (error) {
     console.error('Failed to delete collection', error);
-    alert('Failed to delete collection. Please try again.');
+    showNotification('Failed to delete collection. Please try again.', 'error');
   }
 }
 
 // Save settings
 function saveSettings() {
+  // Preserve existing preferences (including colorTheme, syncEnabled, etc.)
   userPreferences = {
+    ...userPreferences,
     theme: themeSelect.value
   };
 
@@ -622,7 +676,7 @@ function saveSettings() {
     // Send message to background script
     chrome.runtime.sendMessage({
       action: 'updatePreferences',
-      preferences: userPreferences
+      preferences: { theme: userPreferences.theme }
     });
 
     hideSettingsModal();
@@ -637,7 +691,7 @@ function saveSettings() {
 // Sync tabs
 function syncTabs() {
   if (!userPreferences.syncEnabled) {
-    alert('Sync is disabled. Enable it in settings first.');
+    showNotification('Sync is disabled. Enable it in settings first.', 'error');
     return;
   }
   if (!syncBtn) {
@@ -678,6 +732,5 @@ function filterCollectionsByWorkspace(workspaceId) {
 
 // Show workspace modal
 function showWorkspaceModal() {
-  // Implement workspace modal
-  alert('Create new workspace feature coming soon!');
+  showNotification('Create new workspace feature coming soon!', 'success');
 }

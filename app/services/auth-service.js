@@ -3,7 +3,27 @@ import { getSupabase } from './supabaseClient.js';
 export async function signUp({ email, password }) {
   const supabase = getSupabase();
   if (!supabase) return { error: { message: 'Supabase not configured' } };
-  const { data, error } = await supabase.auth.signUp({ email, password });
+
+  let emailRedirectTo;
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+      // Use the base auth page as redirect target; Supabase will append
+      // its own `#access_token=...` fragment. If we included `#signin`
+      // here, the final URL would end up with two hash fragments like
+      // `...auth.html#signin#access_token=...`, which some routers
+      // do not handle correctly.
+      emailRedirectTo = chrome.runtime.getURL('app/pages/auth.html');
+    }
+  } catch (_) {
+    // Ignore failures and fall back to Supabase defaults
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: emailRedirectTo ? { emailRedirectTo } : undefined,
+  });
+
   return { data, error };
 }
 
