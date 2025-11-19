@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SimpleTab Plus",
-  "version": "1.0.4",
-  "description": "Advanced tab management with cloud sync",
+  "version": "1.0.5",
+  "description": "Transform Your Browser Experience. Stop drowning in browser tab and start organizing like a pro.",
   "icons": {
     "16": "app/assets/icons/icon16.png",
     "48": "app/assets/icons/icon48.png",
