@@ -242,7 +242,9 @@ let currentTabs = [];
 let selectedTabs = [];
 let activeWorkspace = "";
 let userPreferences = {
-  theme: "dark",
+  theme: "light",
+  colorTheme: "purple",
+  syncEnabled: true,
   autoSaveEnabled: true,
 };
 let isSearchActive = false;
@@ -335,7 +337,7 @@ function startSessionMonitoring() {
         );
         setTimeout(() => {
           window.location.href = chrome.runtime.getURL(
-            "app/pages/auth.html#signin"
+            "app/pages/auth.html"
           );
         }, 2000);
       }
@@ -373,7 +375,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!sessionResult.authenticated) {
       console.log("User not authenticated, redirecting to login");
       window.location.href = chrome.runtime.getURL(
-        "app/pages/auth.html#signin"
+        "app/pages/auth.html"
       );
       return;
     }
@@ -399,19 +401,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         .charAt(0)
         .toUpperCase();
 
+    const closeUserMenu = () => {
+      if (!userProfile || !userBtn || !userMenu) return;
+      // Determine whether focus is currently inside the menu before we disable it
+      const activeEl = document.activeElement;
+      const focusInsideMenu = !!(activeEl && userMenu.contains(activeEl));
+
+      // Close menu UI
+      userProfile.classList.remove("open");
+      userBtn.setAttribute("aria-expanded", "false");
+
+      // If focus is inside the menu, move it back to the trigger button first
+      if (focusInsideMenu) {
+        userBtn.focus();
+      }
+
+      // Prevent interaction/focus via inert instead of aria-hidden
+      userMenu.inert = true;
+    };
+
     if (userBtn && userProfile) {
+      // Initialize in closed state
+      if (userMenu) userMenu.inert = true;
+
       userBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         const isOpen = userProfile.classList.contains("open");
-        userProfile.classList.toggle("open", !isOpen);
-        userBtn.setAttribute("aria-expanded", String(!isOpen));
-        if (userMenu) userMenu.setAttribute("aria-hidden", String(isOpen));
+        if (isOpen) {
+          closeUserMenu();
+        } else {
+          userProfile.classList.add("open");
+          userBtn.setAttribute("aria-expanded", "true");
+          if (userMenu) userMenu.inert = false;
+        }
       });
+
       document.addEventListener("click", (e) => {
-        if (!userProfile.contains(e.target)) {
-          userProfile.classList.remove("open");
-          userBtn.setAttribute("aria-expanded", "false");
-          if (userMenu) userMenu.setAttribute("aria-hidden", "true");
+        if (!userProfile.contains(e.target) && e.target !== userBtn) {
+          closeUserMenu();
         }
       });
     }
@@ -420,7 +447,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         e.preventDefault();
         chrome.runtime.sendMessage({ action: "authLogout" }, () => {
           window.location.href = chrome.runtime.getURL(
-            "app/pages/auth.html#signin"
+            "app/pages/auth.html"
           );
         });
       });
@@ -501,8 +528,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Load user preferences
 async function loadUserPreferences() {
   try {
-    const settings = await dataService.getSettings();
-    userPreferences = settings;
+    // Prefer preferences synced from Supabase via chrome.storage.local
+    const result = await chrome.storage.local.get(["userPreferences"]);
+    let prefs = result.userPreferences;
+
+    // Fallback to legacy IndexedDB settings if nothing in chrome.storage.local
+    if (!prefs) {
+      const settings = await dataService.getSettings();
+      prefs = {
+        theme: settings.theme,
+        colorTheme: settings.colorTheme,
+        autoSaveEnabled: settings.autoSaveEnabled,
+      };
+    }
+
+    userPreferences = {
+      theme: prefs.theme || "light",
+      colorTheme: prefs.colorTheme || "purple",
+      autoSaveEnabled: prefs.autoSaveEnabled !== false,
+      ...(typeof prefs.syncEnabled === "boolean"
+        ? { syncEnabled: prefs.syncEnabled }
+        : {}),
+    };
 
     // Apply theme mode
     if (userPreferences.theme === "dark") {
@@ -526,7 +573,9 @@ async function loadUserPreferences() {
     document.documentElement.setAttribute("data-color-theme", colorTheme);
 
     // Update form elements
-    themeSelect.value = userPreferences.theme;
+    if (themeSelect) {
+      themeSelect.value = userPreferences.theme;
+    }
 
     // Update color theme button selection
     colorThemeButtons.forEach((btn) => {
@@ -1743,7 +1792,6 @@ async function saveCollection() {
   } else {
     // Save as new collection
     const name = collectionNameInput.value.trim();
-    const spaceId = collectionSpaceSelect.value;
 
     if (!name) {
       alert("Please enter a collection name");
@@ -1756,6 +1804,20 @@ async function saveCollection() {
     }
 
     try {
+      // Ensure there is at least one workspace/space; for new users, create a default "Personal" space
+      const existingSpaces = await dataService.getSpaces();
+      if (!existingSpaces || existingSpaces.length === 0) {
+        await dataService.ensureDefaultSpace();
+        // Reload spaces UI so the new default space appears and activeWorkspace/selector update
+        await loadSpaces();
+      }
+
+      const spaceId = collectionSpaceSelect.value || activeWorkspace;
+      if (!spaceId) {
+        alert("Please select a workspace");
+        return;
+      }
+
       // Format tabs for storage
       const tabs = selectedTabs.map((tab) => {
         // Check if favicon is valid
@@ -1806,6 +1868,12 @@ async function saveSettings() {
 
     // Update local state
     userPreferences = updatedPreferences;
+
+    // Notify background so preferences (including theme & color) can be synced
+    chrome.runtime.sendMessage({
+      action: "updatePreferences",
+      preferences: updatedPreferences,
+    });
 
     // Apply theme mode
     if (userPreferences.theme === "dark") {

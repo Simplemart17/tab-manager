@@ -39,7 +39,19 @@ let isSyncing = false;
 
 async function ensureProfile(supabase, user) {
   if (!user) return;
-  await supabase.from('profiles').upsert({ user_id: user.id, email: user.email, created_at: nowIso() }).select();
+  await supabase
+    .from('profiles')
+    .upsert({ user_id: user.id, email: user.email, created_at: nowIso() })
+    .select();
+}
+
+export async function ensureProfileForCurrentUser() {
+  const supabase = getSupabase();
+  if (!supabase) return { ok: false, reason: 'Supabase not configured' };
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, reason: 'Not signed in' };
+  await ensureProfile(supabase, user);
+  return { ok: true };
 }
 
 export async function syncAll() {
@@ -82,12 +94,12 @@ async function _syncAllImpl() {
     spaces = [];
   }
 
-  // Upsert user settings
+  // Upsert user settings (theme mode, color theme, auto save enabled)
   if (Object.keys(userPreferences).length) {
     await supabase.from('user_settings').upsert({
       user_id: user.id,
       theme: userPreferences.theme || 'light',
-      sync_enabled: userPreferences.syncEnabled !== false,
+      color_theme: userPreferences.colorTheme || 'purple',
       auto_save_enabled: userPreferences.autoSaveEnabled !== false,
       updated_at: nowIso(),
     });
@@ -209,8 +221,10 @@ async function _syncAllImpl() {
         favicon: t.favicon || null,
         order_index: idx,
       }));
-      const { error: insErr } = await supabase.from('tabs').insert(rows);
-      if (insErr) throw new Error(`Tabs insert failed: ${insErr.message}`);
+      // Use upsert so that if a tab ID already exists remotely, it is updated instead of
+      // causing a duplicate key violation on the primary key (tabs_pkey).
+      const { error: insErr } = await supabase.from('tabs').upsert(rows);
+      if (insErr) throw new Error(`Tabs upsert failed: ${insErr.message}`);
     }
   }
 
@@ -385,13 +399,13 @@ export async function pullAll() {
   // Pull user settings
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('theme,sync_enabled,auto_save_enabled')
+    .select('theme,color_theme,auto_save_enabled')
     .eq('user_id', user.id)
     .maybeSingle();
   if (settings) {
     const userPreferences = {
       theme: settings.theme || 'light',
-      syncEnabled: settings.sync_enabled !== false,
+      colorTheme: settings.color_theme || 'purple',
       autoSaveEnabled: settings.auto_save_enabled !== false,
     };
     await chrome.storage.local.set({ userPreferences });
