@@ -6,7 +6,7 @@
  * Unauthenticated users are automatically redirected to the auth page.
  * All data is synced to Supabase and requires a valid user session.
  */
-import { bidirectionalSync, pullAll, startRealtime, stopRealtime } from './services/sync-service.js';
+import { bidirectionalSync, pullAll, startRealtime, stopRealtime, ensureProfileForCurrentUser } from './services/sync-service.js';
 import { signUp, signIn, signOut, getSession, validateSession } from './services/auth-service.js';
 import { migrateLocalToCloud } from './services/migration-service.js';
 import dataService from './services/data.js';
@@ -335,9 +335,14 @@ async function syncTabs(isManualSync = false) {
   }
 }
 
-function updateUserPreferences(preferences) {
+async function updateUserPreferences(preferences) {
   userPreferences = { ...userPreferences, ...preferences };
   chrome.storage.local.set({ userPreferences });
+  try {
+    await syncTabs(false);
+  } catch (e) {
+    console.warn('Settings sync failed:', e?.message || e);
+  }
 }
 
 // Auth message handlers and realtime wiring
@@ -348,6 +353,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       if (request.action === 'authRegister') {
         const { data, error } = await signUp({ email: request.email, password: request.password });
         if (error) throw new Error(error.message);
+
+        // Ensure profile exists for this user immediately after signup
+        try {
+          await ensureProfileForCurrentUser();
+        } catch (e) {
+          console.warn('Failed to ensure profile after signup:', e?.message || e);
+        }
+
         // Only migrate and start realtime if sync is enabled
         if (userPreferences.syncEnabled) {
           await migrateLocalToCloud();
@@ -358,6 +371,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       } else if (request.action === 'authLogin') {
         const { data, error } = await signIn({ email: request.email, password: request.password });
         if (error) throw new Error(error.message);
+
+        // Ensure profile exists for users who might predate profile creation
+        try {
+          await ensureProfileForCurrentUser();
+        } catch (e) {
+          console.warn('Failed to ensure profile after login:', e?.message || e);
+        }
+
         if (realtimeDispose) { try { realtimeDispose(); } catch (_) {} }
 
         // ALWAYS pull user's data from cloud on login (regardless of sync setting)
